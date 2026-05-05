@@ -56,25 +56,21 @@
     margin-bottom: 24px;
     align-items: center;
   }
-  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #c9d1d9; }
-  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-  .dot.green  { background: #3fb950; }
-  .dot.yellow { background: #d29922; }
-  .dot.grey   { background: #484f58; }
 
   .section { margin-bottom: 24px; }
   .section-label {
-    font-size: 20px;
-    font-weight: 500;
+    font-size: 80px;
+    font-weight: 600;
     color: #f0f6fc;
     text-transform: none;
     letter-spacing: 0.06em;
-    margin-bottom: 16px;
+    margin-bottom: 24px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    gap: 16px;
   }
-  .section-flag { font-size: 20px; line-height: 1; }
+  .section-flag { font-size: 80px; line-height: 1; }
 
   .grid {
     display: grid;
@@ -101,26 +97,20 @@
   .card.yellow { border-color: #d29922; background: rgba(210,153,34,0.1); }
   .card.grey   { opacity: 0.5; }
 
-  .city   { font-size: 14px; font-weight: 600; color: #f0f6fc; line-height: 1.3; }
+  .city   { font-size: 60px; font-weight: 600; color: #b8c0cc; line-height: 1.2; text-align: center; }
 
   .time-now {
-    font-size: 100px;
+    font-size: 120px;
     font-weight: 700;
     letter-spacing: -2px;
     margin: 5px 0 4px;
-    color: #f0f6fc;
-    line-height: 1;
-  }
-  .time-now .date-row {
-    font-size: 80px;
-    font-weight: 500;
-    letter-spacing: 0;
     color: #8b949e;
-    margin-left: 16px;
-    vertical-align: middle;
+    line-height: 1;
+    text-align: center;
   }
-
-  .badge-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .card.green .time-now  { color: #3fb950; }
+  .card.yellow .time-now { color: #d29922; }
+  .card.grey .time-now   { color: #8b949e; }
   .badge {
     font-size: 12px;
     font-weight: 500;
@@ -133,20 +123,18 @@
   .badge.none         { background: #333; color: #8b949e; }
   .badge.weekend      { background: #333; color: #8b949e; }
 
-  .date-row      { font-size: 80px; font-weight: 600; letter-spacing: -2px; color: #8b949e; }
+  .date-row { font-size: 80px; font-weight: 500; letter-spacing: 0; color: #b8c0cc; margin: 8px 0; text-align: center; }
 </style>
 </head>
 <body>
 <div class="container">
 
-<div class="header">
-  <h1>Call Operating Hours</h1>
-</div>
 
 <div class="legend">
-  <div class="legend-item"><div class="dot green"></div>Outbound + inbound</div>
-  <div class="legend-item"><div class="dot yellow"></div>Inbound only</div>
-  <div class="legend-item"><div class="dot grey"></div>No calls</div>
+  <span class="badge both">↑↓ outbound + inbound</span>
+  <span class="badge inbound-only">↓ inbound only</span>
+  <span class="badge none">no calls</span>
+  <span class="badge weekend">weekend</span>
 </div>
 
 <div id="sections"></div>
@@ -219,14 +207,10 @@ function mergeWindows(w1, w2) {
 function minsToFmt(m) {
   m = ((m % 1440) + 1440) % 1440;
   const h = Math.floor(m / 60) % 24, mn = m % 60;
-  const ap = h < 12 ? "am" : "pm";
-  const hh = h % 12 === 0 ? 12 : h % 12;
-  return `${hh}:${String(mn).padStart(2,"0")}${ap}`;
+  return `${String(h).padStart(2,"0")}:${String(mn).padStart(2,"0")}`;
 }
 function fmt(h, m) {
-  const ap = h < 12 ? "am" : "pm";
-  const hh = h % 12 === 0 ? 12 : h % 12;
-  return `${hh}:${String(m).padStart(2,"0")}${ap}`;
+  return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
 }
 function getMergedInbound(tz) {
   const mw = translateWindow(MEL_OPEN, MEL_CLOSE, MEL_TZ, tz);
@@ -236,16 +220,16 @@ function getMergedInbound(tz) {
 
 const ZONES = [
   {label:"New Zealand",          sub:"NZST / NZDT",            tz:"Pacific/Auckland",       region:"NZ"},
-  {label:"VIC, NSW, TAS, ACT",   sub:"AEDT / AEST",            tz:"Australia/Sydney",        region:"AU"},
-  {label:"QLD",                  sub:"AEST (no DST)",           tz:"Australia/Brisbane",      region:"AU"},
-  {label:"SA",                   sub:"ACDT / ACST",             tz:"Australia/Adelaide",      region:"AU"},
-  {label:"NT",                   sub:"ACST (no DST)",           tz:"Australia/Darwin",        region:"AU"},
   {label:"WA",                   sub:"AWST",                    tz:"Australia/Perth",         region:"AU"},
+  {label:"NT",                   sub:"ACST (no DST)",           tz:"Australia/Darwin",        region:"AU"},
+  {label:"SA",                   sub:"ACDT / ACST",             tz:"Australia/Adelaide",      region:"AU"},
+  {label:"QLD",                  sub:"AEST (no DST)",           tz:"Australia/Brisbane",      region:"AU"},
+  {label:"VIC, NSW, TAS, ACT",   sub:"AEDT / AEST",            tz:"Australia/Sydney",        region:"AU"},
   {label:"South Africa",         sub:"SAST",                    tz:"Africa/Johannesburg",     region:"ZA"},
+  {label:"Hawaii",               sub:"HST — HI",                tz:"Pacific/Honolulu",        region:"US"},
   {label:"Eastern",              sub:"ET — NY, FL, GA, OH, PA…",tz:"America/New_York",        region:"US"},
   {label:"Central",              sub:"CT — TX, IL, MN, MO, LA…",tz:"America/Chicago",         region:"US"},
   {label:"Pacific",              sub:"PT — CA, WA, OR, NV",     tz:"America/Los_Angeles",     region:"US"},
-  {label:"Hawaii",               sub:"HST — HI",                tz:"Pacific/Honolulu",        region:"US"},
 ];
 
 const GROUP_META = {
@@ -260,17 +244,6 @@ function makeCard(z) {
   const h      = p.hour === "24" ? "00" : p.hour;
   const timeStr = fmt(parseInt(h) % 24, parseInt(p.minute));
   const status  = callStatus(z.tz);
-  const wknd    = isWeekend(z.tz);
-
-  let badge = "";
-  if (status === "green") {
-    badge = `<span class="badge both">↑↓ outbound + inbound</span>`;
-  } else if (status === "yellow") {
-    badge = `<span class="badge inbound-only">↓ inbound only</span>`;
-    if (wknd) badge += `<span class="badge weekend">weekend</span>`;
-  } else {
-    badge = `<span class="badge none">no calls</span>`;
-  }
 
   const card = document.createElement("div");
   card.className = `card ${status}`;
@@ -279,8 +252,8 @@ function makeCard(z) {
 
   card.innerHTML = `
     ${cityHtml}
-    <div class="time-now">${timeStr}<span class="date-row">${p.weekday} ${p.month} ${p.day}</span></div>
-    <div class="badge-row">${badge}</div>
+    <div class="time-now">${timeStr}</div>
+    <div class="date-row">${p.weekday} ${p.month} ${p.day}</div>
   `;
   return card;
 }
@@ -297,7 +270,7 @@ function render() {
     lbl.innerHTML = `<span class="section-flag">${meta.flag}</span>${meta.label}`;
     sec.appendChild(lbl);
     const grid = document.createElement("div");
-    grid.className = r === "AU" ? "grid-row" : "grid";
+    grid.className = "grid-row";
     zones.forEach(z => grid.appendChild(makeCard(z)));
     sec.appendChild(grid);
     sections.appendChild(sec);

@@ -13,31 +13,29 @@
       line-height: 1.6;
       padding: 20px;
     }
-    .container { max-width: 1400px; margin: 0 auto; }
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 24px;
-    }
-    h1 { font-size: 28px; font-weight: 600; color: #f0f6fc; }
-    h2 { font-size: 20px; font-weight: 500; margin: 24px 0 16px; color: #f0f6fc; }
+    .container { width: 100%; margin: 0 auto; }
+    h2 { font-size: 80px; font-weight: 600; margin: 32px 0 24px; color: #f0f6fc; }
 
     /* Summary Tiles */
     .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-      margin-bottom: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+    .summary-grid > div {
+      flex: 1 1 45%;
+      min-width: 400px;
     }
     .summary-tile {
-      border-radius: 12px;
-      padding: 24px;
+      border-radius: 16px;
+      padding: 40px;
       transition: all 0.2s;
       display: flex;
       flex-direction: row;
       align-items: center;
-      gap: 24px;
+      justify-content: center;
+      min-height: 400px;
     }
     .summary-tile:hover { transform: translateY(-2px); }
     .summary-tile.operational {
@@ -56,52 +54,22 @@
       background: #8957e526;
       border: 2px solid #a371f7;
     }
-    .summary-tile-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .summary-tile-logo-col {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .summary-tile-logo {
-      max-width: 400px;
-      max-height: 240px;
+    .summary-tile-logo-only {
+      max-width: 600px;
+      max-height: 360px;
       object-fit: contain;
       border-radius: 8px;
-    }
-    .summary-tile-status {
-      font-size: 24px;
-      font-weight: 700;
-      color: #f0f6fc;
-      text-transform: uppercase;
-    }
-    .summary-tile-issues {
-      font-size: 13px;
-      color: rgba(255,255,255,0.8);
-    }
-    .summary-tile-timer {
-      font-size: 18px;
-      font-weight: 600;
-      color: #f0f6fc;
-      margin-top: 8px;
-      padding-top: 12px;
-      border-top: 1px solid rgba(255,255,255,0.2);
-      font-family: 'SF Mono', monospace;
     }
 
     .section { margin-bottom: 24px; }
 
     .alert-box {
       background: #da363326;
-      border: 1px solid #f85149;
-      border-left: 4px solid #f85149;
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 12px;
+      border: 2px solid #f85149;
+      border-left: 8px solid #f85149;
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 24px;
     }
     .alert-box.warning {
       background: #9e6a0326;
@@ -112,25 +80,27 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 16px;
+      gap: 16px;
     }
     .alert-service {
+      font-size: 48px;
       font-weight: 600;
       color: #f0f6fc;
     }
     .alert-status {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 12px;
+      gap: 12px;
+      padding: 8px 20px;
+      border-radius: 16px;
+      font-size: 32px;
       font-weight: 500;
     }
     .alert-status::before {
       content: '';
-      width: 8px;
-      height: 8px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
     }
     .alert-status.operational { background: transparent; border: 1px solid #3fb950; color: #3fb950; }
@@ -140,11 +110,11 @@
     .alert-status.outage { background: transparent; border: 1px solid #f85149; color: #f85149; }
     .alert-status.outage::before { background: #f85149; }
     .alert-time {
-      font-size: 12px;
+      font-size: 36px;
       color: #8b949e;
     }
     .alert-message {
-      font-size: 14px;
+      font-size: 40px;
       color: #c9d1d9;
     }
 
@@ -156,36 +126,19 @@
     }
 
     @media (max-width: 600px) {
-      .summary-grid { grid-template-columns: 1fr; }
-      .header { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .summary-grid { flex-direction: column; }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h1>Status Monitor</h1>
-    </div>
-
     <div class="summary-grid">
       <div id="zh-summary" class="summary-tile operational" data-service="zerohash" data-status="operational">
-        <div class="summary-tile-content">
-          <div class="summary-tile-status">Operational</div>
-          <div class="summary-tile-issues" id="zh-issues-text">All systems operational</div>
-        </div>
-        <div class="summary-tile-logo-col">
-          <img src="logos/zerohash.png" alt="Zero Hash" class="summary-tile-logo">
-        </div>
+        <img src="logos/zerohash.png" alt="Zero Hash" class="summary-tile-logo-only">
       </div>
 
       <div id="ss-summary" class="summary-tile operational" data-service="sumsub" data-status="operational">
-        <div class="summary-tile-content">
-          <div class="summary-tile-status">Operational</div>
-          <div class="summary-tile-issues" id="ss-issues-text">All systems operational</div>
-        </div>
-        <div class="summary-tile-logo-col">
-          <img src="logos/sumsub.png" alt="Sumsub" class="summary-tile-logo">
-        </div>
+        <img src="logos/sumsub.png" alt="Sumsub" class="summary-tile-logo-only">
       </div>
     </div>
 
@@ -303,7 +256,7 @@
       return { status: 'Issue Detected', class: 'outage' };
     }
 
-    function updateServiceTile(serviceId, components, issuesTextId) {
+    function updateServiceTile(serviceId, components) {
       const tile = document.getElementById(serviceId);
       const statusInfo = getServiceStatus(components);
       const issueCount = countIssues(components);
@@ -312,36 +265,13 @@
       tile.className = `summary-tile ${statusInfo.class}`;
       tile.setAttribute('data-status', statusInfo.status.toLowerCase());
 
-      // Update text content
-      tile.querySelector('.summary-tile-status').textContent = statusInfo.status;
-
-      const issuesText = document.getElementById(issuesTextId);
       if (issueCount === 0) {
-        issuesText.textContent = 'All systems operational';
         delete serviceIssueStartTimes[serviceId];
       } else {
-        const total = components.length;
-        issuesText.textContent = `${issueCount} of ${total} components affected`;
-
         // Start timer if not already tracking
         if (!serviceIssueStartTimes[serviceId]) {
           serviceIssueStartTimes[serviceId] = Date.now();
         }
-      }
-
-      // Update or remove timer (append to content column)
-      const contentCol = tile.querySelector('.summary-tile-content');
-      let timerDiv = contentCol.querySelector('.summary-tile-timer');
-      if (issueCount > 0) {
-        if (!timerDiv) {
-          timerDiv = document.createElement('div');
-          timerDiv.className = 'summary-tile-timer';
-          contentCol.appendChild(timerDiv);
-        }
-        const elapsed = Date.now() - serviceIssueStartTimes[serviceId];
-        timerDiv.textContent = formatDuration(elapsed);
-      } else if (timerDiv) {
-        timerDiv.remove();
       }
     }
 
@@ -358,25 +288,13 @@
     }
 
     function updateTimers() {
-      ['zh-summary', 'ss-summary'].forEach(serviceId => {
-        const tile = document.getElementById(serviceId);
-        const status = tile.getAttribute('data-status');
-
-        if (status !== 'operational' && serviceIssueStartTimes[serviceId]) {
-          const elapsed = Date.now() - serviceIssueStartTimes[serviceId];
-          const contentCol = tile.querySelector('.summary-tile-content');
-          let timerDiv = contentCol.querySelector('.summary-tile-timer');
-          if (timerDiv) {
-            timerDiv.textContent = formatDuration(elapsed);
-          }
-        }
-      });
+      // Timer tracking maintained but no visible display in simplified view
     }
 
     function render() {
       // Update summary tiles
-      updateServiceTile('zh-summary', ZEROHASH_COMPONENTS, 'zh-issues-text');
-      updateServiceTile('ss-summary', SUMSUB_SGP, 'ss-issues-text');
+      updateServiceTile('zh-summary', ZEROHASH_COMPONENTS);
+      updateServiceTile('ss-summary', SUMSUB_SGP);
 
       // Show only unresolved alerts
       const unresolvedAlerts = RECENT_ALERTS.filter(a => a.status !== 'Resolved');
