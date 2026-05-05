@@ -13,10 +13,10 @@
       line-height: 1.6;
       padding: 20px;
     }
-    .container { max-width: 1200px; margin: 0 auto; }
+    .container { max-width: 1400px; margin: 0 auto; }
     h1 { font-size: 28px; font-weight: 600; margin-bottom: 8px; color: #f0f6fc; }
-    h2 { font-size: 20px; font-weight: 500; margin: 24px 0 12px; color: #f0f6fc; }
-    h3 { font-size: 16px; font-weight: 500; margin: 16px 0 8px; color: #8b949e; }
+    h2 { font-size: 20px; font-weight: 500; margin: 24px 0 16px; color: #f0f6fc; }
+    h3 { font-size: 16px; font-weight: 500; margin: 20px 0 12px; color: #8b949e; }
     .subtitle { color: #8b949e; font-size: 14px; margin-bottom: 20px; }
     .stats {
       display: grid;
@@ -40,52 +40,65 @@
     .stat-value.success { color: #3fb950; }
     .stat-label { font-size: 12px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
     .section { margin-bottom: 24px; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #161b22;
-      border: 1px solid #30363d;
+
+    /* Tile Grid */
+    .tile-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .tile {
       border-radius: 8px;
-      overflow: hidden;
+      padding: 16px;
+      transition: all 0.2s;
+      position: relative;
     }
-    th, td {
-      padding: 12px 16px;
-      text-align: left;
-      border-bottom: 1px solid #30363d;
+    .tile:hover { transform: translateY(-2px); }
+    .tile.operational {
+      background: #238636;
+      border: 1px solid #2ea043;
     }
-    th {
-      background: #21262d;
+    .tile.degraded {
+      background: #9e6a03;
+      border: 1px solid #d29922;
+    }
+    .tile.outage {
+      background: #da3633;
+      border: 1px solid #f85149;
+    }
+    .tile.maintenance {
+      background: #8957e5;
+      border: 1px solid #a371f7;
+    }
+    .tile-name {
+      font-size: 13px;
       font-weight: 500;
+      color: #f0f6fc;
+      margin-bottom: 8px;
+      word-break: break-word;
+    }
+    .tile-status {
       font-size: 12px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.9);
       text-transform: uppercase;
-      color: #8b949e;
       letter-spacing: 0.5px;
     }
-    tr:last-child td { border-bottom: none; }
-    tr:hover { background: #1c2128; }
-    .status {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 500;
+    .tile-uptime {
+      font-size: 11px;
+      color: rgba(255,255,255,0.7);
+      margin-top: 4px;
     }
-    .status::before {
-      content: '';
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
+    .tile-timer {
+      font-size: 14px;
+      font-weight: 600;
+      color: #f0f6fc;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,0.2);
+      font-family: 'SF Mono', monospace;
     }
-    .status.operational { background: #23863626; color: #3fb950; }
-    .status.operational::before { background: #3fb950; }
-    .status.degraded { background: #9e6a0326; color: #d29922; }
-    .status.degraded::before { background: #d29922; }
-    .status.outage { background: #da363326; color: #f85149; }
-    .status.outage::before { background: #f85149; }
-    .status.maintenance { background: #8957e526; color: #a371f7; }
-    .status.maintenance::before { background: #a371f7; }
+
     .alert-box {
       background: #da363326;
       border: 1px solid #f85149;
@@ -165,16 +178,21 @@
       font-family: 'SF Mono', Monaco, monospace;
       font-size: 13px;
     }
+    .config-note {
+      margin-top: 12px;
+      color: #8b949e;
+      font-size: 12px;
+    }
     @media (max-width: 600px) {
       .stats { grid-template-columns: 1fr; }
-      th, td { padding: 10px 12px; font-size: 13px; }
+      .tile-grid { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Status Monitor</h1>
-    <p class="subtitle">Zero Hash + Sumsub | Auto-refresh: <span id="refresh-status">ON</span></p>
+    <p class="subtitle">Zero Hash + Sumsub | Auto-refresh: <span id="refresh-status">ON</span> (every 30s)</p>
 
     <div class="controls">
       <button onclick="toggleRefresh()" id="refresh-btn">Pause</button>
@@ -189,7 +207,7 @@
       </div>
       <div class="stat">
         <div class="stat-value" id="ss-count">0</div>
-        <div class="stat-label">Sumsub</div>
+        <div class="stat-label">Sumsub SGP</div>
       </div>
       <div class="stat">
         <div class="stat-value alert" id="issues-count">0</div>
@@ -204,47 +222,12 @@
 
     <div class="section">
       <h2>Zero Hash (zerohash.com)</h2>
-      <table>
-        <thead>
-          <tr><th>Component</th><th>Status</th><th>Uptime (90d)</th></tr>
-        </thead>
-        <tbody id="zh-table"></tbody>
-      </table>
+      <div id="zh-tiles" class="tile-grid"></div>
     </div>
 
     <div class="section">
-      <h2>Sumsub (sumsub.com)</h2>
-      <h3>EU Region</h3>
-      <table>
-        <thead>
-          <tr><th>Component</th><th>Status</th><th>Uptime (90d)</th></tr>
-        </thead>
-        <tbody id="ss-eu-table"></tbody>
-      </table>
-
-      <h3>UAE Region</h3>
-      <table>
-        <thead>
-          <tr><th>Component</th><th>Status</th><th>Uptime (90d)</th></tr>
-        </thead>
-        <tbody id="ss-uae-table"></tbody>
-      </table>
-
-      <h3>SGP Region</h3>
-      <table>
-        <thead>
-          <tr><th>Component</th><th>Status</th><th>Uptime (90d)</th></tr>
-        </thead>
-        <tbody id="ss-sgp-table"></tbody>
-      </table>
-
-      <h3>Other Systems</h3>
-      <table>
-        <thead>
-          <tr><th>Component</th><th>Status</th><th>Uptime (90d)</th></tr>
-        </thead>
-        <tbody id="ss-other-table"></tbody>
-      </table>
+      <h2>Sumsub SGP Region (sumsub.com)</h2>
+      <div id="ss-sgp-tiles" class="tile-grid"></div>
     </div>
 
     <div class="section">
@@ -253,9 +236,10 @@
         <p>Monitored URLs:</p>
         <p><code>https://status.zerohash.com/</code> — <a href="https://status.zerohash.com/" target="_blank">Visit</a></p>
         <p><code>https://status.sumsub.com/</code> — <a href="https://status.sumsub.com/" target="_blank">Visit</a></p>
-        <p style="margin-top: 12px; color: #8b949e; font-size: 12px;">
-          Alert trigger: Component status ≠ "Operational"<br>
-          Poll interval: 30 seconds
+        <p class="config-note">
+          <strong>Auto-refresh frequency:</strong> 30 seconds<br>
+          <strong>Alert trigger:</strong> Component status ≠ "Operational"<br>
+          <strong>Timer:</strong> Starts when status changes from Operational, stops when resolved
         </p>
       </div>
     </div>
@@ -293,26 +277,10 @@
       { name: 'ASSETS', status: 'Operational', uptime: '100.0%' },
     ];
 
-    const SUMSUB_EU = [
-      { name: 'API', status: 'Operational', uptime: '100.0%' },
-      { name: 'MobileSDK', status: 'Operational', uptime: '100.0%' },
-      { name: 'WebSDK', status: 'Operational', uptime: '100.0%' },
-    ];
-
-    const SUMSUB_UAE = [
-      { name: 'API', status: 'Operational', uptime: '77.69%' },
-      { name: 'MobileSDK', status: 'Operational', uptime: '77.69%' },
-      { name: 'WebSDK', status: 'Operational', uptime: '77.69%' },
-    ];
-
     const SUMSUB_SGP = [
       { name: 'API', status: 'Operational', uptime: '100.0%' },
       { name: 'MobileSDK', status: 'Operational', uptime: '100.0%' },
       { name: 'WebSDK', status: 'Operational', uptime: '100.0%' },
-    ];
-
-    const SUMSUB_OTHER = [
-      { name: 'Support Systems', status: 'Operational', uptime: '99.99%' },
     ];
 
     const RECENT_ALERTS = [
@@ -336,10 +304,22 @@
       },
     ];
 
+    // Track when each component became non-operational
+    const issueStartTimes = {};
+
     let autoRefresh = true;
     let refreshInterval;
+    let timerInterval;
 
-    function getStatusClass(status) {
+    function getTileClass(status) {
+      if (status === 'Operational' || status === 'Resolved') return 'operational';
+      if (status === 'Degraded Performance' || status === 'Monitoring') return 'degraded';
+      if (status === 'Partial Outage' || status === 'Unresolved') return 'outage';
+      if (status === 'Major Outage') return 'outage';
+      return 'maintenance';
+    }
+
+    function getAlertClass(status) {
       if (status === 'Operational' || status === 'Resolved') return 'operational';
       if (status === 'Degraded Performance' || status === 'Monitoring') return 'degraded';
       if (status === 'Partial Outage' || status === 'Unresolved') return 'outage';
@@ -351,12 +331,43 @@
       return items.filter(i => i.status !== 'Operational' && i.status !== 'Resolved').length;
     }
 
-    function renderRow(item) {
-      return `<tr>
-        <td>${item.name}</td>
-        <td><span class="status ${getStatusClass(item.status)}">${item.status}</span></td>
-        <td>${item.uptime}</td>
-      </tr>`;
+    function formatDuration(ms) {
+      const seconds = Math.floor(ms / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+
+      if (days > 0) return `${days}d ${hours % 24}h`;
+      if (hours > 0) return `${hours}h ${minutes % 60}m`;
+      if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+      return `${seconds}s`;
+    }
+
+    function getTimerHTML(componentKey, status) {
+      if (status === 'Operational' || status === 'Resolved') {
+        delete issueStartTimes[componentKey];
+        return '';
+      }
+
+      if (!issueStartTimes[componentKey]) {
+        issueStartTimes[componentKey] = Date.now();
+      }
+
+      const elapsed = Date.now() - issueStartTimes[componentKey];
+      return `<div class="tile-timer">${formatDuration(elapsed)}</div>`;
+    }
+
+    function renderTile(item, service, componentId) {
+      const componentKey = `${service}-${componentId}`;
+      const tileClass = getTileClass(item.status);
+      const timerHTML = getTimerHTML(componentKey, item.status);
+
+      return `<div class="tile ${tileClass}" data-key="${componentKey}" data-status="${item.status}">
+        <div class="tile-name">${item.name}</div>
+        <div class="tile-status">${item.status}</div>
+        <div class="tile-uptime">${item.uptime} uptime</div>
+        ${timerHTML}
+      </div>`;
     }
 
     function renderAlert(alert) {
@@ -364,30 +375,45 @@
       return `<div class="alert-box ${alertClass}">
         <div class="alert-header">
           <span class="alert-service">${alert.service} | ${alert.component}</span>
-          <span class="status ${getStatusClass(alert.status)}">${alert.status}</span>
+          <span class="status ${getAlertClass(alert.status)}">${alert.status}</span>
         </div>
         <div class="alert-message">${alert.message}</div>
         <div class="alert-time">${alert.time}</div>
       </div>`;
     }
 
+    function updateTimers() {
+      document.querySelectorAll('.tile').forEach(tile => {
+        const key = tile.getAttribute('data-key');
+        const status = tile.getAttribute('data-status');
+
+        if (status !== 'Operational' && status !== 'Resolved' && issueStartTimes[key]) {
+          const elapsed = Date.now() - issueStartTimes[key];
+          let timerDiv = tile.querySelector('.tile-timer');
+          if (!timerDiv) {
+            timerDiv = document.createElement('div');
+            timerDiv.className = 'tile-timer';
+            tile.appendChild(timerDiv);
+          }
+          timerDiv.textContent = formatDuration(elapsed);
+        }
+      });
+    }
+
     function updateStats() {
       const zhIssues = countIssues(ZEROHASH_COMPONENTS);
-      const ssIssues = countIssues(SUMSUB_EU) + countIssues(SUMSUB_UAE) + countIssues(SUMSUB_SGP) + countIssues(SUMSUB_OTHER);
+      const ssIssues = countIssues(SUMSUB_SGP);
       const totalIssues = zhIssues + ssIssues;
 
       document.getElementById('zh-count').textContent = ZEROHASH_COMPONENTS.length;
-      document.getElementById('ss-count').textContent = SUMSUB_EU.length + SUMSUB_UAE.length + SUMSUB_SGP.length + SUMSUB_OTHER.length;
+      document.getElementById('ss-count').textContent = SUMSUB_SGP.length;
       document.getElementById('issues-count').textContent = totalIssues;
       document.getElementById('issues-count').className = 'stat-value' + (totalIssues > 0 ? ' alert' : ' success');
     }
 
     function render() {
-      document.getElementById('zh-table').innerHTML = ZEROHASH_COMPONENTS.map(renderRow).join('');
-      document.getElementById('ss-eu-table').innerHTML = SUMSUB_EU.map(renderRow).join('');
-      document.getElementById('ss-uae-table').innerHTML = SUMSUB_UAE.map(renderRow).join('');
-      document.getElementById('ss-sgp-table').innerHTML = SUMSUB_SGP.map(renderRow).join('');
-      document.getElementById('ss-other-table').innerHTML = SUMSUB_OTHER.map(renderRow).join('');
+      document.getElementById('zh-tiles').innerHTML = ZEROHASH_COMPONENTS.map((item, i) => renderTile(item, 'zh', i)).join('');
+      document.getElementById('ss-sgp-tiles').innerHTML = SUMSUB_SGP.map((item, i) => renderTile(item, 'ss-sgp', i)).join('');
       document.getElementById('alerts-container').innerHTML = RECENT_ALERTS.map(renderAlert).join('');
       updateStats();
     }
@@ -419,10 +445,12 @@
     render();
     updateTimestamp();
     refreshInterval = setInterval(refreshNow, 30000);
+    timerInterval = setInterval(updateTimers, 1000); // Update timers every second
 
     // Cleanup on page unload
     window.addEventListener('beforeunload', () => {
       clearInterval(refreshInterval);
+      clearInterval(timerInterval);
     });
   </script>
 </body>
