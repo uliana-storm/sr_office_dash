@@ -67,7 +67,7 @@
     font-size: 20px;
     font-weight: 500;
     color: #f0f6fc;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.06em;
     margin-bottom: 16px;
     display: flex;
@@ -106,11 +106,20 @@
   .city   { font-size: 14px; font-weight: 600; color: #f0f6fc; line-height: 1.3; }
 
   .time-now {
-    font-size: 18px;
-    font-weight: 600;
-    letter-spacing: -0.5px;
+    font-size: 100px;
+    font-weight: 700;
+    letter-spacing: -2px;
     margin: 5px 0 4px;
     color: #f0f6fc;
+    line-height: 1;
+  }
+  .time-now .date-row {
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: 0;
+    color: #8b949e;
+    margin-left: 16px;
+    vertical-align: middle;
   }
 
   .badge-row { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -229,19 +238,22 @@ function getMergedInbound(tz) {
 
 const ZONES = [
   {label:"New Zealand",          sub:"NZST / NZDT",            tz:"Pacific/Auckland",       region:"NZ"},
-  {label:"VIC, NSW, TAS, ACT",   sub:"AEDT / AEST",            tz:"Australia/Sydney",        region:"AU"},
-  {label:"QLD",                  sub:"AEST (no DST)",           tz:"Australia/Brisbane",      region:"AU"},
-  {label:"SA",                   sub:"ACDT / ACST",             tz:"Australia/Adelaide",      region:"AU"},
-  {label:"NT",                   sub:"ACST (no DST)",           tz:"Australia/Darwin",        region:"AU"},
-  {label:"WA",                   sub:"AWST",                    tz:"Australia/Perth",         region:"AU"},
-  {label:"South Africa",         sub:"SAST",                    tz:"Africa/Johannesburg",     region:"ZA"},
+  {label:"Sydney",               sub:"AEDT / AEST",            tz:"Australia/Sydney",        region:"AU"},
+  {label:"Melbourne",            sub:"AEDT / AEST",            tz:"Australia/Melbourne",     region:"AU"},
+  {label:"Brisbane",             sub:"AEST (no DST)",         tz:"Australia/Brisbane",      region:"AU"},
+  {label:"Perth",                sub:"AWST",                   tz:"Australia/Perth",         region:"AU"},
+  {label:"Adelaide",             sub:"ACDT / ACST",            tz:"Australia/Adelaide",      region:"AU"},
+  {label:"Canberra",             sub:"AEDT / AEST",            tz:"Australia/Canberra",      region:"AU"},
+  {label:"Darwin",               sub:"ACST (no DST)",          tz:"Australia/Darwin",        region:"AU"},
+  {label:"Hobart",               sub:"AEDT / AEST",            tz:"Australia/Hobart",        region:"AU"},
+  {label:"South Africa",         sub:"SAST",                   tz:"Africa/Johannesburg",     region:"ZA"},
   {label:"Eastern",              sub:"ET — NY, FL, GA, OH, PA…",tz:"America/New_York",        region:"US"},
   {label:"Central",              sub:"CT — TX, IL, MN, MO, LA…",tz:"America/Chicago",         region:"US"},
   {label:"Mountain",             sub:"MT — CO, UT, WY, NM, ID…",tz:"America/Denver",          region:"US"},
-  {label:"Arizona",              sub:"MT no DST — AZ",          tz:"America/Phoenix",         region:"US"},
-  {label:"Pacific",              sub:"PT — CA, WA, OR, NV",     tz:"America/Los_Angeles",     region:"US"},
-  {label:"Alaska",               sub:"AKT — AK",                tz:"America/Anchorage",       region:"US"},
-  {label:"Hawaii",               sub:"HST — HI",                tz:"Pacific/Honolulu",        region:"US"},
+  {label:"Arizona",              sub:"MT no DST — AZ",         tz:"America/Phoenix",         region:"US"},
+  {label:"Pacific",              sub:"PT — CA, WA, OR, NV",    tz:"America/Los_Angeles",     region:"US"},
+  {label:"Alaska",               sub:"AKT — AK",               tz:"America/Anchorage",       region:"US"},
+  {label:"Hawaii",               sub:"HST — HI",               tz:"Pacific/Honolulu",        region:"US"},
 ];
 
 const GROUP_META = {
@@ -275,13 +287,13 @@ function makeCard(z) {
 
   card.innerHTML = `
     ${cityHtml}
-    <div class="time-now">${timeStr} <span class="date-row">${p.weekday} ${p.month} ${p.day}</span></div>
+    <div class="time-now">${timeStr}<span class="date-row">${p.weekday} ${p.month} ${p.day}</span></div>
     <div class="badge-row">${badge}</div>
   `;
   return card;
 }
 
-const HIDDEN_US_ZONES = new Set(["America/Denver", "America/Phoenix", "America/Anchorage"]);
+const HIDDEN_US_ZONES = new Set([]);
 
 function render() {
   const sections = document.getElementById("sections");
