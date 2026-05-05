@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Call Operating Hours</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --bg-secondary: #f5f5f5;
+    --border: #e0e0e0;
+    --border-light: #ebebeb;
+    --text: #1a1a1a;
+    --text-secondary: #555;
+    --text-tertiary: #888;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a1a;
+      --bg-secondary: #252525;
+      --border: #333;
+      --border-light: #2c2c2c;
+      --text: #f0f0f0;
+      --text-secondary: #aaa;
+      --text-tertiary: #666;
+    }
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 1.5rem 1rem;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+  }
+  .header h1 { font-size: 17px; font-weight: 600; }
+
+  .now-badge {
+    font-size: 12px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--bg-secondary);
+    border: 0.5px solid var(--border);
+    color: var(--text-tertiary);
+  }
+
+  .last-updated {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-left: auto;
+  }
+
+  .anchor-bar {
+    background: var(--bg-secondary);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.65rem 0.875rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .anchor-item { display: flex; flex-direction: column; gap: 2px; }
+  .anchor-label { font-size: 11px; color: var(--text-tertiary); }
+  .anchor-val { font-size: 13px; font-weight: 500; color: var(--text); }
+  .anchor-status { font-size: 11px; font-weight: 500; }
+  .anchor-status.open { color: #0F6E56; }
+  .anchor-status.closed { color: var(--text-tertiary); }
+
+  .legend {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+    align-items: center;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-secondary); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .dot.green  { background: #1D9E75; }
+  .dot.yellow { background: #BA7517; }
+  .dot.grey   { background: var(--border); }
+
+  .section { margin-bottom: 1.75rem; }
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .section-flag { font-size: 16px; line-height: 1; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+    gap: 9px;
+  }
+
+  .card {
+    background: var(--bg);
+    border: 0.5px solid var(--border-light);
+    border-radius: var(--radius);
+    padding: 0.75rem 0.875rem;
+    transition: border-color 0.2s, background 0.2s, opacity 0.2s;
+  }
+  .card.green  { border-color: #1D9E75; background: rgba(29,158,117,0.05); }
+  .card.yellow { border-color: #BA7517; background: rgba(186,117,23,0.05); }
+  .card.grey   { opacity: 0.5; }
+
+  .city   { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.3; }
+  .tz-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+
+  .time-now {
+    font-size: 21px;
+    font-weight: 500;
+    letter-spacing: -0.5px;
+    margin: 5px 0 4px;
+    color: var(--text);
+  }
+
+  .badge-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 5px; }
+  .badge {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.both         { background: #E1F5EE; color: #0F6E56; }
+  .badge.inbound-only { background: #FAEEDA; color: #854F0B; }
+  .badge.none         { background: var(--bg-secondary); color: var(--text-tertiary); }
+  .badge.weekend      { background: var(--bg-secondary); color: var(--text-tertiary); }
+
+  .inbound-label { font-size: 11px; color: var(--text-tertiary); margin-bottom: 2px; }
+  .inbound-val   { font-size: 11px; color: var(--text-secondary); line-height: 1.6; }
+  .date-row      { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Call Operating Hours</h1>
+  <span class="now-badge" id="utc-now"></span>
+  <span class="last-updated" id="last-updated"></span>
+</div>
+
+<div class="anchor-bar" id="anchor-bar"></div>
+
+<div class="legend">
+  <div class="legend-item"><div class="dot green"></div>Outbound + inbound</div>
+  <div class="legend-item"><div class="dot yellow"></div>Inbound only</div>
+  <div class="legend-item"><div class="dot grey"></div>No calls</div>
+</div>
+
+<div id="sections"></div>
+
+<script>
+const MEL_TZ = "Australia/Melbourne";
+const ET_TZ  = "America/New_York";
+const MEL_OPEN = 8*60, MEL_CLOSE = 20*60;
+const USA_OPEN_ET = 8*60, USA_CLOSE_ET = 23*60;
+
+function getParts(tz) {
+  const p = {};
+  new Intl.DateTimeFormat("en-US", {
+    timeZone: tz, hour: "2-digit", minute: "2-digit",
+    hour12: false, weekday: "short", month: "short", day: "numeric"
+  }).formatToParts(new Date()).forEach(x => p[x.type] = x.value);
+  return p;
+}
+function localMins(tz) { const p = getParts(tz); return parseInt(p.hour)*60 + parseInt(p.minute); }
+function isWeekend(tz) { const d = getParts(tz).weekday; return d === "Sat" || d === "Sun"; }
+function inWin(cur, a, b) { if (a < b) return cur >= a && cur < b; return cur >= a || cur < b; }
+function melWinActive()  { return inWin(localMins(MEL_TZ), MEL_OPEN, MEL_CLOSE); }
+function usaWinActive()  { return inWin(localMins(ET_TZ), USA_OPEN_ET, USA_CLOSE_ET); }
+function operatingWin()  { return melWinActive() || usaWinActive(); }
+function outboundOpen(tz) {
+  if (isWeekend(tz)) return false;
+  if (!operatingWin()) return false;
+  return inWin(localMins(tz), 8*60, 20*60);
+}
+function callStatus(tz) {
+  if (outboundOpen(tz)) return "green";
+  if (operatingWin())   return "yellow";
+  return "grey";
+}
+
+function tzOffsetMins(tz) {
+  const d = new Date();
+  return Math.round((new Date(d.toLocaleString("en-US", {timeZone: tz})) - d) / 60000);
+}
+function translateWindow(open, close, srcTz, tgtTz) {
+  const diff = tzOffsetMins(tgtTz) - tzOffsetMins(srcTz);
+  return {
+    open:  ((open  + diff) % 1440 + 1440) % 1440,
+    close: ((close + diff) % 1440 + 1440) % 1440
+  };
+}
+function mergeWindows(w1, w2) {
+  const active = new Uint8Array(1440);
+  function mark(w) {
+    if (w.open < w.close) { for (let i = w.open; i < w.close; i++) active[i] = 1; }
+    else { for (let i = w.open; i < 1440; i++) active[i] = 1; for (let i = 0; i < w.close; i++) active[i] = 1; }
+  }
+  mark(w1); mark(w2);
+  const ranges = [];
+  let start = null;
+  for (let i = 0; i < 1440; i++) {
+    if (active[i] && start === null) start = i;
+    if (!active[i] && start !== null) { ranges.push({open: start, close: i}); start = null; }
+  }
+  if (start !== null) ranges.push({open: start, close: 1440});
+  if (ranges.length > 1 && active[0] && active[1439]) {
+    const first = ranges.shift();
+    const last  = ranges.pop();
+    ranges.unshift({open: last.open, close: first.close + (1440 - last.open)});
+  }
+  return ranges;
+}
+function minsToFmt(m) {
+  m = ((m % 1440) + 1440) % 1440;
+  const h = Math.floor(m / 60) % 24, mn = m % 60;
+  const ap = h < 12 ? "am" : "pm";
+  const hh = h % 12 === 0 ? 12 : h % 12;
+  return `${hh}:${String(mn).padStart(2,"0")}${ap}`;
+}
+function fmt(h, m) {
+  const ap = h < 12 ? "am" : "pm";
+  const hh = h % 12 === 0 ? 12 : h % 12;
+  return `${hh}:${String(m).padStart(2,"0")}${ap}`;
+}
+function getMergedInbound(tz) {
+  const mw = translateWindow(MEL_OPEN, MEL_CLOSE, MEL_TZ, tz);
+  const uw = translateWindow(USA_OPEN_ET, USA_CLOSE_ET, ET_TZ, tz);
+  return mergeWindows(mw, uw);
+}
+
+const ZONES = [
+  {label:"New Zealand",          sub:"NZST / NZDT",            tz:"Pacific/Auckland",       region:"NZ"},
+  {label:"VIC, NSW, TAS, ACT",   sub:"AEDT / AEST",            tz:"Australia/Sydney",        region:"AU"},
+  {label:"QLD",                  sub:"AEST (no DST)",           tz:"Australia/Brisbane",      region:"AU"},
+  {label:"SA",                   sub:"ACDT / ACST",             tz:"Australia/Adelaide",      region:"AU"},
+  {label:"NT",                   sub:"ACST (no DST)",           tz:"Australia/Darwin",        region:"AU"},
+  {label:"WA",                   sub:"AWST",                    tz:"Australia/Perth",         region:"AU"},
+  {label:"South Africa",         sub:"SAST",                    tz:"Africa/Johannesburg",     region:"ZA"},
+  {label:"Eastern",              sub:"ET — NY, FL, GA, OH, PA…",tz:"America/New_York",        region:"US"},
+  {label:"Central",              sub:"CT — TX, IL, MN, MO, LA…",tz:"America/Chicago",         region:"US"},
+  {label:"Mountain",             sub:"MT — CO, UT, WY, NM, ID…",tz:"America/Denver",          region:"US"},
+  {label:"Arizona",              sub:"MT no DST — AZ",          tz:"America/Phoenix",         region:"US"},
+  {label:"Pacific",              sub:"PT — CA, WA, OR, NV",     tz:"America/Los_Angeles",     region:"US"},
+  {label:"Alaska",               sub:"AKT — AK",                tz:"America/Anchorage",       region:"US"},
+  {label:"Hawaii",               sub:"HST — HI",                tz:"Pacific/Honolulu",        region:"US"},
+];
+
+const GROUP_META = {
+  NZ: {label:"New Zealand",    flag:"🇳🇿"},
+  AU: {label:"Australia",      flag:"🇦🇺"},
+  ZA: {label:"South Africa",   flag:"🇿🇦"},
+  US: {label:"United States",  flag:"🇺🇸"},
+};
+
+function makeCard(z) {
+  const p      = getParts(z.tz);
+  const h      = p.hour === "24" ? "00" : p.hour;
+  const timeStr = fmt(parseInt(h) % 24, parseInt(p.minute));
+  const status  = callStatus(z.tz);
+  const wknd    = isWeekend(z.tz);
+  const ranges  = getMergedInbound(z.tz);
+
+  let badge = "";
+  if (status === "green") {
+    badge = `<span class="badge both">↑↓ outbound + inbound</span>`;
+  } else if (status === "yellow") {
+    badge = `<span class="badge inbound-only">↓ inbound only</span>`;
+    if (wknd) badge += `<span class="badge weekend">weekend</span>`;
+  } else {
+    badge = `<span class="badge none">no calls</span>`;
+  }
+
+  const rangeLines = ranges.length
+    ? ranges.map(r => `<div class="inbound-val">${minsToFmt(r.open)} – ${minsToFmt(r.close)}</div>`).join("")
+    : `<div class="inbound-val">—</div>`;
+
+  const card = document.createElement("div");
+  card.className = `card ${status}`;
+  card.innerHTML = `
+    <div class="city">${z.label}</div>
+    <div class="tz-sub">${z.sub}</div>
+    <div class="time-now">${timeStr}</div>
+    <div class="badge-row">${badge}</div>
+    <div class="inbound-label">Call in (local time)</div>
+    ${rangeLines}
+    <div class="date-row">${p.weekday} ${p.month} ${p.day}</div>
+  `;
+  return card;
+}
+
+function renderAnchorBar() {
+  const bar = document.getElementById("anchor-bar");
+  const mp  = getParts(MEL_TZ); const mh = mp.hour === "24" ? "00" : mp.hour;
+  const ep  = getParts(ET_TZ);  const eh = ep.hour === "24" ? "00" : ep.hour;
+  const melOn = melWinActive(), usaOn = usaWinActive();
+  bar.innerHTML = `
+    <div class="anchor-item">
+      <span class="anchor-label">🇦🇺 Melbourne</span>
+      <span class="anchor-val">${fmt(parseInt(mh)%24, parseInt(mp.minute))} · ${mp.weekday} ${mp.month} ${mp.day}</span>
+      <span class="anchor-status ${melOn?"open":"closed"}">${melOn?"● open":"○ closed"} · 8:00am – 8:00pm</span>
+    </div>
+    <div class="anchor-item">
+      <span class="anchor-label">🇺🇸 USA Eastern</span>
+      <span class="anchor-val">${fmt(parseInt(eh)%24, parseInt(ep.minute))} · ${ep.weekday} ${ep.month} ${ep.day}</span>
+      <span class="anchor-status ${usaOn?"open":"closed"}">${usaOn?"● open":"○ closed"} · 8am ET – 8pm PT</span>
+    </div>
+    <div class="anchor-item">
+      <span class="anchor-label">Inbound status</span>
+      <span class="anchor-val" style="font-size:12px">${melOn&&usaOn?"MEL + USA active":melOn?"MEL active":usaOn?"USA active":"neither active"}</span>
+      <span class="anchor-status ${melOn||usaOn?"open":"closed"}">${melOn||usaOn?"● clients can call in":"○ office unreachable"}</span>
+    </div>
+  `;
+}
+
+function render() {
+  const sections = document.getElementById("sections");
+  sections.innerHTML = "";
+  ["NZ","AU","ZA","US"].forEach(r => {
+    const zones = ZONES.filter(z => z.region === r);
+    if (!zones.length) return;
+    const sec = document.createElement("div"); sec.className = "section";
+    const lbl = document.createElement("div"); lbl.className = "section-label";
+    const meta = GROUP_META[r];
+    lbl.innerHTML = `<span class="section-flag">${meta.flag}</span>${meta.label}`;
+    sec.appendChild(lbl);
+    const grid = document.createElement("div"); grid.className = "grid";
+    zones.forEach(z => grid.appendChild(makeCard(z)));
+    sec.appendChild(grid);
+    sections.appendChild(sec);
+  });
+}
+
+function updateUtc() {
+  const now = new Date();
+  document.getElementById("utc-now").textContent = "UTC " + now.toISOString().slice(11,16);
+  document.getElementById("last-updated").textContent = "Updated " + now.toLocaleTimeString();
+}
+
+// Initial render
+render(); renderAnchorBar(); updateUtc();
+
+// Refresh every 10 seconds — updates times, open/closed status, and inbound windows
+setInterval(() => { render(); renderAnchorBar(); updateUtc(); }, 10000);
+</script>
+</body>
+</html>
