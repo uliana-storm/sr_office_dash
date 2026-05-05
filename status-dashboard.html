@@ -55,33 +55,35 @@
     }
     .tile:hover { transform: translateY(-2px); }
     .tile.operational {
-      background: #238636;
-      border: 1px solid #2ea043;
+      background: #23863626;
+      border: 1px solid #3fb950;
     }
     .tile.degraded {
-      background: #9e6a03;
+      background: #9e6a0326;
       border: 1px solid #d29922;
     }
     .tile.outage {
-      background: #da3633;
+      background: #da363326;
       border: 1px solid #f85149;
     }
     .tile.maintenance {
-      background: #8957e5;
+      background: #8957e526;
       border: 1px solid #a371f7;
     }
     .tile-name {
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 600;
       color: #f0f6fc;
       margin-bottom: 8px;
       word-break: break-word;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     .tile-status {
       font-size: 12px;
-      font-weight: 600;
-      color: rgba(255,255,255,0.9);
-      text-transform: uppercase;
+      font-weight: 500;
+      color: rgba(255,255,255,0.7);
+      text-transform: lowercase;
       letter-spacing: 0.5px;
     }
     .tile-uptime {
