@@ -81,6 +81,18 @@
       border-top: 1px solid rgba(255,255,255,0.2);
       font-family: 'SF Mono', monospace;
     }
+    .summary-tile-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .summary-tile-logo {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      border-radius: 4px;
+    }
 
     .section { margin-bottom: 24px; }
 
@@ -158,13 +170,17 @@
 
     <div class="summary-grid">
       <div id="zh-summary" class="summary-tile operational" data-service="zerohash" data-status="operational">
-        <div class="summary-tile-name">Zero Hash</div>
+        <div class="summary-tile-header">
+          <img src="logos/image.png" alt="Zero Hash" class="summary-tile-logo">
+        </div>
         <div class="summary-tile-status">Operational</div>
         <div class="summary-tile-issues" id="zh-issues-text">All systems operational</div>
       </div>
 
       <div id="ss-summary" class="summary-tile operational" data-service="sumsub" data-status="operational">
-        <div class="summary-tile-name">Sumsub SGP</div>
+        <div class="summary-tile-header">
+          <img src="logos/image%20(1).png" alt="Sumsub" class="summary-tile-logo">
+        </div>
         <div class="summary-tile-status">Operational</div>
         <div class="summary-tile-issues" id="ss-issues-text">All systems operational</div>
       </div>
