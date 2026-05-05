@@ -97,9 +97,9 @@
 
   .section { margin-bottom: 1.75rem; }
   .section-label {
-    font-size: 11px;
+    font-size: 20px;
     font-weight: 600;
-    color: var(--text-tertiary);
+    color: white;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     margin-bottom: 0.5rem;
@@ -113,6 +113,16 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
     gap: 9px;
+  }
+  .grid-row {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 9px;
+    overflow-x: auto;
+  }
+  .grid-row .card {
+    flex: 1 1 0;
+    min-width: 160px;
   }
 
   .card {
@@ -150,9 +160,10 @@
   .badge.none         { background: var(--bg-secondary); color: var(--text-tertiary); }
   .badge.weekend      { background: var(--bg-secondary); color: var(--text-tertiary); }
 
-  .inbound-label { font-size: 11px; color: var(--text-tertiary); margin-bottom: 2px; }
-  .inbound-val   { font-size: 11px; color: var(--text-secondary); line-height: 1.6; }
-  .date-row      { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
+  .inbound-row   { display: flex; gap: 6px; align-items: baseline; margin-top: 4px; }
+  .inbound-label { font-size: 11px; color: var(--text-tertiary); }
+  .inbound-val   { font-size: 11px; color: var(--text-secondary); }
+  .date-row      { font-size: 21px; font-weight: 500; letter-spacing: -0.5px; color: var(--text); }
 </style>
 </head>
 <body>
@@ -296,20 +307,19 @@ function makeCard(z) {
     badge = `<span class="badge none">no calls</span>`;
   }
 
-  const rangeLines = ranges.length
-    ? ranges.map(r => `<div class="inbound-val">${minsToFmt(r.open)} – ${minsToFmt(r.close)}</div>`).join("")
-    : `<div class="inbound-val">—</div>`;
 
   const card = document.createElement("div");
   card.className = `card ${status}`;
+  const inboundRanges = ranges.length
+    ? ranges.map(r => `${minsToFmt(r.open)} – ${minsToFmt(r.close)}`).join(", ")
+    : "—";
+
   card.innerHTML = `
     <div class="city">${z.label}</div>
     <div class="tz-sub">${z.sub}</div>
-    <div class="time-now">${timeStr}</div>
+    <div class="time-now">${timeStr} <span class="date-row">${p.weekday} ${p.month} ${p.day}</span></div>
     <div class="badge-row">${badge}</div>
-    <div class="inbound-label">Call in (local time)</div>
-    ${rangeLines}
-    <div class="date-row">${p.weekday} ${p.month} ${p.day}</div>
+    <div class="inbound-row"><span class="inbound-label">Call in (local time)</span><span class="inbound-val">${inboundRanges}</span></div>
   `;
   return card;
 }
@@ -338,18 +348,22 @@ function renderAnchorBar() {
   `;
 }
 
+const HIDDEN_US_ZONES = new Set(["America/Denver", "America/Phoenix", "America/Anchorage"]);
+
 function render() {
   const sections = document.getElementById("sections");
   sections.innerHTML = "";
-  ["NZ","AU","ZA","US"].forEach(r => {
-    const zones = ZONES.filter(z => z.region === r);
+  ["AU","US","NZ","ZA"].forEach(r => {
+    let zones = ZONES.filter(z => z.region === r);
+    if (r === "US") zones = zones.filter(z => !HIDDEN_US_ZONES.has(z.tz));
     if (!zones.length) return;
     const sec = document.createElement("div"); sec.className = "section";
     const lbl = document.createElement("div"); lbl.className = "section-label";
     const meta = GROUP_META[r];
     lbl.innerHTML = `<span class="section-flag">${meta.flag}</span>${meta.label}`;
     sec.appendChild(lbl);
-    const grid = document.createElement("div"); grid.className = "grid";
+    const grid = document.createElement("div");
+    grid.className = r === "AU" ? "grid-row" : "grid";
     zones.forEach(z => grid.appendChild(makeCard(z)));
     sec.appendChild(grid);
     sections.appendChild(sec);

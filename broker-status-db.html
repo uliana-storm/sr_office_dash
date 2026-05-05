@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Status Monitor | Zero Hash + Sumsub</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      line-height: 1.6;
+      padding: 20px;
+    }
+    .container { max-width: 1400px; margin: 0 auto; }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    h1 { font-size: 28px; font-weight: 600; color: #f0f6fc; }
+    h2 { font-size: 20px; font-weight: 500; margin: 24px 0 16px; color: #f0f6fc; }
+
+    /* Summary Tiles */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .summary-tile {
+      border-radius: 12px;
+      padding: 24px;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .summary-tile:hover { transform: translateY(-2px); }
+    .summary-tile.operational {
+      background: #23863626;
+      border: 2px solid #3fb950;
+    }
+    .summary-tile.degraded {
+      background: #9e6a0326;
+      border: 2px solid #d29922;
+    }
+    .summary-tile.outage {
+      background: #da363326;
+      border: 2px solid #f85149;
+    }
+    .summary-tile.maintenance {
+      background: #8957e526;
+      border: 2px solid #a371f7;
+    }
+    .summary-tile-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #f0f6fc;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .summary-tile-status {
+      font-size: 24px;
+      font-weight: 700;
+      color: #f0f6fc;
+      text-transform: uppercase;
+    }
+    .summary-tile-issues {
+      font-size: 13px;
+      color: rgba(255,255,255,0.8);
+    }
+    .summary-tile-timer {
+      font-size: 18px;
+      font-weight: 600;
+      color: #f0f6fc;
+      margin-top: 8px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.2);
+      font-family: 'SF Mono', monospace;
+    }
+
+    .section { margin-bottom: 24px; }
+
+    .alert-box {
+      background: #da363326;
+      border: 1px solid #f85149;
+      border-left: 4px solid #f85149;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .alert-box.warning {
+      background: #9e6a0326;
+      border-color: #d29922;
+      border-left-color: #d29922;
+    }
+    .alert-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .alert-service {
+      font-weight: 600;
+      color: #f0f6fc;
+    }
+    .alert-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .alert-status::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .alert-status.operational { background: #23863626; color: #3fb950; }
+    .alert-status.operational::before { background: #3fb950; }
+    .alert-status.degraded { background: #9e6a0326; color: #d29922; }
+    .alert-status.degraded::before { background: #d29922; }
+    .alert-status.outage { background: #da363326; color: #f85149; }
+    .alert-status.outage::before { background: #f85149; }
+    .alert-time {
+      font-size: 12px;
+      color: #8b949e;
+    }
+    .alert-message {
+      font-size: 14px;
+      color: #c9d1d9;
+    }
+
+    .no-alerts {
+      color: #8b949e;
+      font-style: italic;
+      padding: 16px;
+      text-align: center;
+    }
+
+    @media (max-width: 600px) {
+      .summary-grid { grid-template-columns: 1fr; }
+      .header { flex-direction: column; align-items: flex-start; gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Status Monitor</h1>
+    </div>
+
+    <div class="summary-grid">
+      <div id="zh-summary" class="summary-tile operational" data-service="zerohash" data-status="operational">
+        <div class="summary-tile-name">Zero Hash</div>
+        <div class="summary-tile-status">Operational</div>
+        <div class="summary-tile-issues" id="zh-issues-text">All systems operational</div>
+      </div>
+
+      <div id="ss-summary" class="summary-tile operational" data-service="sumsub" data-status="operational">
+        <div class="summary-tile-name">Sumsub SGP</div>
+        <div class="summary-tile-status">Operational</div>
+        <div class="summary-tile-issues" id="ss-issues-text">All systems operational</div>
+      </div>
+    </div>
+
+    <div class="section" id="alerts-section">
+      <h2>Unresolved Alerts</h2>
+      <div id="alerts-container"></div>
+    </div>
+  </div>
+
+  <script>
+    // Status data - captured from external status pages
+    const ZEROHASH_COMPONENTS = [
+      { name: 'Core Resources', status: 'Operational', uptime: '99.99%' },
+      { name: 'PARTICIPANTS', status: 'Operational', uptime: '100.0%' },
+      { name: 'TRANSACT', status: 'Operational', uptime: '100.0%' },
+      { name: 'TRADING', status: 'Operational', uptime: '100.0%' },
+      { name: 'DEPOSIT & WITHDRAWAL', status: 'Operational', uptime: '99.97%' },
+      { name: 'ACCOUNTS', status: 'Operational', uptime: '100.0%' },
+      { name: 'SDK', status: 'Operational', uptime: '100.0%' },
+      { name: 'ONBOARDING', status: 'Operational', uptime: '100.0%' },
+      { name: 'PROFILE', status: 'Operational', uptime: '100.0%' },
+      { name: 'CRYPTO BUY & SELL', status: 'Operational', uptime: '100.0%' },
+      { name: 'FUND', status: 'Operational', uptime: '100.0%' },
+      { name: 'CRYPTO ACCOUNT LINK', status: 'Operational', uptime: '100.0%' },
+      { name: 'CLOB', status: 'Operational', uptime: '100.0%' },
+      { name: 'FIX Gateway', status: 'Operational', uptime: '100.0%' },
+      { name: 'REST Gateway', status: 'Operational', uptime: '100.0%' },
+      { name: 'Web Applications', status: 'Operational', uptime: '100.0%' },
+      { name: 'Client Portal', status: 'Operational', uptime: '100.0%' },
+      { name: 'Secondary Portal', status: 'Operational', uptime: '100.0%' },
+      { name: 'Website', status: 'Operational', uptime: '100.0%' },
+      { name: 'Websockets', status: 'Operational', uptime: '100.0%' },
+      { name: 'Balance Subscription', status: 'Operational', uptime: '100.0%' },
+      { name: 'Price Subscription', status: 'Operational', uptime: '100.0%' },
+      { name: 'Webhooks', status: 'Operational', uptime: '100.0%' },
+      { name: 'PAYMENTS', status: 'Operational', uptime: '100.0%' },
+      { name: 'ACCOUNT FUNDING', status: 'Operational', uptime: '100.0%' },
+      { name: 'TRADES', status: 'Operational', uptime: '100.0%' },
+      { name: 'ASSETS', status: 'Operational', uptime: '100.0%' },
+    ];
+
+    const SUMSUB_SGP = [
+      { name: 'API', status: 'Operational', uptime: '100.0%' },
+      { name: 'MobileSDK', status: 'Operational', uptime: '100.0%' },
+      { name: 'WebSDK', status: 'Operational', uptime: '100.0%' },
+    ];
+
+    const RECENT_ALERTS = [
+      {
+        id: '1',
+        service: 'Sumsub',
+        component: 'Support integration for Slack',
+        status: 'Unresolved',
+        message: 'Support integration for Slack stopped working, tickets being closed automatically',
+        time: 'May 04, 2026 - 21:46 UTC',
+        severity: 'warning',
+      },
+      {
+        id: '2',
+        service: 'Zero Hash',
+        component: 'Solana Withdrawals & Deposits',
+        status: 'Resolved',
+        message: 'Delayed Solana transactions - all impacted transactions confirmed on-chain',
+        time: 'Apr 23, 2026 - 21:22 UTC',
+        severity: 'success',
+      },
+    ];
+
+    // Track when each service became non-operational
+    const serviceIssueStartTimes = {};
+
+    let timerInterval;
+
+    function getTileClass(status) {
+      if (status === 'Operational' || status === 'Resolved') return 'operational';
+      if (status === 'Degraded Performance' || status === 'Monitoring') return 'degraded';
+      if (status === 'Partial Outage' || status === 'Unresolved') return 'outage';
+      if (status === 'Major Outage') return 'outage';
+      return 'maintenance';
+    }
+
+    function getAlertClass(status) {
+      if (status === 'Operational' || status === 'Resolved') return 'operational';
+      if (status === 'Degraded Performance' || status === 'Monitoring') return 'degraded';
+      if (status === 'Partial Outage' || status === 'Unresolved') return 'outage';
+      if (status === 'Major Outage') return 'outage';
+      return 'maintenance';
+    }
+
+    function countIssues(items) {
+      return items.filter(i => i.status !== 'Operational' && i.status !== 'Resolved').length;
+    }
+
+    function formatDuration(ms) {
+      const seconds = Math.floor(ms / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+
+      if (days > 0) return `${days}d ${hours % 24}h ${minutes % 60}m`;
+      if (hours > 0) return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+      if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+      return `${seconds}s`;
+    }
+
+    function getServiceStatus(components) {
+      const issueCount = countIssues(components);
+      if (issueCount === 0) return { status: 'Operational', class: 'operational' };
+
+      // Find the worst status
+      const statuses = components.map(c => c.status);
+      if (statuses.includes('Major Outage')) return { status: 'Major Outage', class: 'outage' };
+      if (statuses.includes('Partial Outage') || statuses.includes('Unresolved')) return { status: 'Partial Outage', class: 'outage' };
+      if (statuses.includes('Degraded Performance') || statuses.includes('Monitoring')) return { status: 'Degraded Performance', class: 'degraded' };
+      return { status: 'Issue Detected', class: 'outage' };
+    }
+
+    function updateServiceTile(serviceId, components, issuesTextId) {
+      const tile = document.getElementById(serviceId);
+      const statusInfo = getServiceStatus(components);
+      const issueCount = countIssues(components);
+
+      // Update tile class and status
+      tile.className = `summary-tile ${statusInfo.class}`;
+      tile.setAttribute('data-status', statusInfo.status.toLowerCase());
+
+      // Update text content
+      tile.querySelector('.summary-tile-status').textContent = statusInfo.status;
+
+      const issuesText = document.getElementById(issuesTextId);
+      if (issueCount === 0) {
+        issuesText.textContent = 'All systems operational';
+        delete serviceIssueStartTimes[serviceId];
+      } else {
+        const total = components.length;
+        issuesText.textContent = `${issueCount} of ${total} components affected`;
+
+        // Start timer if not already tracking
+        if (!serviceIssueStartTimes[serviceId]) {
+          serviceIssueStartTimes[serviceId] = Date.now();
+        }
+      }
+
+      // Update or remove timer
+      let timerDiv = tile.querySelector('.summary-tile-timer');
+      if (issueCount > 0) {
+        if (!timerDiv) {
+          timerDiv = document.createElement('div');
+          timerDiv.className = 'summary-tile-timer';
+          tile.appendChild(timerDiv);
+        }
+        const elapsed = Date.now() - serviceIssueStartTimes[serviceId];
+        timerDiv.textContent = formatDuration(elapsed);
+      } else if (timerDiv) {
+        timerDiv.remove();
+      }
+    }
+
+    function renderAlert(alert) {
+      const alertClass = alert.severity === 'warning' ? 'warning' : '';
+      return `<div class="alert-box ${alertClass}">
+        <div class="alert-header">
+          <span class="alert-service">${alert.service} | ${alert.component}</span>
+          <span class="alert-status ${getAlertClass(alert.status)}">${alert.status}</span>
+        </div>
+        <div class="alert-message">${alert.message}</div>
+        <div class="alert-time">${alert.time}</div>
+      </div>`;
+    }
+
+    function updateTimers() {
+      ['zh-summary', 'ss-summary'].forEach(serviceId => {
+        const tile = document.getElementById(serviceId);
+        const status = tile.getAttribute('data-status');
+
+        if (status !== 'operational' && serviceIssueStartTimes[serviceId]) {
+          const elapsed = Date.now() - serviceIssueStartTimes[serviceId];
+          let timerDiv = tile.querySelector('.summary-tile-timer');
+          if (timerDiv) {
+            timerDiv.textContent = formatDuration(elapsed);
+          }
+        }
+      });
+    }
+
+    function render() {
+      // Update summary tiles
+      updateServiceTile('zh-summary', ZEROHASH_COMPONENTS, 'zh-issues-text');
+      updateServiceTile('ss-summary', SUMSUB_SGP, 'ss-issues-text');
+
+      // Show only unresolved alerts
+      const unresolvedAlerts = RECENT_ALERTS.filter(a => a.status !== 'Resolved');
+      const alertsContainer = document.getElementById('alerts-container');
+
+      if (unresolvedAlerts.length === 0) {
+        alertsContainer.innerHTML = '<div class="no-alerts">No unresolved alerts</div>';
+      } else {
+        alertsContainer.innerHTML = unresolvedAlerts.map(renderAlert).join('');
+      }
+    }
+
+    // Initialize
+    render();
+    timerInterval = setInterval(updateTimers, 1000); // Update timers every second
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      clearInterval(timerInterval);
+    });
+  </script>
+</body>
+</html>
