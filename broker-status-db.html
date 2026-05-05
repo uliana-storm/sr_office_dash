@@ -35,8 +35,9 @@
       padding: 24px;
       transition: all 0.2s;
       display: flex;
-      flex-direction: column;
-      gap: 8px;
+      flex-direction: row;
+      align-items: center;
+      gap: 24px;
     }
     .summary-tile:hover { transform: translateY(-2px); }
     .summary-tile.operational {
@@ -55,12 +56,22 @@
       background: #8957e526;
       border: 2px solid #a371f7;
     }
+    .summary-tile-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .summary-tile-logo-col {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
     .summary-tile-logo {
-      width: 160px;
-      height: 160px;
+      max-width: 200px;
+      max-height: 120px;
       object-fit: contain;
       border-radius: 8px;
-      margin-bottom: 16px;
     }
     .summary-tile-status {
       font-size: 24px;
@@ -158,15 +169,23 @@
 
     <div class="summary-grid">
       <div id="zh-summary" class="summary-tile operational" data-service="zerohash" data-status="operational">
-        <img src="logos/image.png" alt="Zero Hash" class="summary-tile-logo">
-        <div class="summary-tile-status">Operational</div>
-        <div class="summary-tile-issues" id="zh-issues-text">All systems operational</div>
+        <div class="summary-tile-content">
+          <div class="summary-tile-status">Operational</div>
+          <div class="summary-tile-issues" id="zh-issues-text">All systems operational</div>
+        </div>
+        <div class="summary-tile-logo-col">
+          <img src="logos/image.png" alt="Zero Hash" class="summary-tile-logo">
+        </div>
       </div>
 
       <div id="ss-summary" class="summary-tile operational" data-service="sumsub" data-status="operational">
-        <img src="logos/image%20(1).png" alt="Sumsub" class="summary-tile-logo">
-        <div class="summary-tile-status">Operational</div>
-        <div class="summary-tile-issues" id="ss-issues-text">All systems operational</div>
+        <div class="summary-tile-content">
+          <div class="summary-tile-status">Operational</div>
+          <div class="summary-tile-issues" id="ss-issues-text">All systems operational</div>
+        </div>
+        <div class="summary-tile-logo-col">
+          <img src="logos/image%20(1).png" alt="Sumsub" class="summary-tile-logo">
+        </div>
       </div>
     </div>
 
@@ -310,13 +329,14 @@
         }
       }
 
-      // Update or remove timer
-      let timerDiv = tile.querySelector('.summary-tile-timer');
+      // Update or remove timer (append to content column)
+      const contentCol = tile.querySelector('.summary-tile-content');
+      let timerDiv = contentCol.querySelector('.summary-tile-timer');
       if (issueCount > 0) {
         if (!timerDiv) {
           timerDiv = document.createElement('div');
           timerDiv.className = 'summary-tile-timer';
-          tile.appendChild(timerDiv);
+          contentCol.appendChild(timerDiv);
         }
         const elapsed = Date.now() - serviceIssueStartTimes[serviceId];
         timerDiv.textContent = formatDuration(elapsed);
@@ -344,7 +364,8 @@
 
         if (status !== 'operational' && serviceIssueStartTimes[serviceId]) {
           const elapsed = Date.now() - serviceIssueStartTimes[serviceId];
-          let timerDiv = tile.querySelector('.summary-tile-timer');
+          const contentCol = tile.querySelector('.summary-tile-content');
+          let timerDiv = contentCol.querySelector('.summary-tile-timer');
           if (timerDiv) {
             timerDiv.textContent = formatDuration(elapsed);
           }
