@@ -14,31 +14,39 @@
       padding: 20px;
     }
     .container { max-width: 1400px; margin: 0 auto; }
-    h1 { font-size: 28px; font-weight: 600; margin-bottom: 8px; color: #f0f6fc; }
-    h2 { font-size: 20px; font-weight: 500; margin: 24px 0 16px; color: #f0f6fc; }
-    h3 { font-size: 16px; font-weight: 500; margin: 20px 0 12px; color: #8b949e; }
-    .subtitle { color: #8b949e; font-size: 14px; margin-bottom: 20px; }
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 12px;
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       margin-bottom: 24px;
     }
-    .stat {
-      background: #161b22;
-      border: 1px solid #30363d;
+    h1 { font-size: 28px; font-weight: 600; color: #f0f6fc; }
+    h2 { font-size: 20px; font-weight: 500; margin: 24px 0 16px; color: #f0f6fc; }
+    h3 { font-size: 16px; font-weight: 500; margin: 20px 0 12px; color: #8b949e; }
+
+    .issues-tile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
       border-radius: 8px;
-      padding: 16px;
-      text-align: center;
+      font-size: 14px;
     }
-    .stat-value {
-      font-size: 32px;
+    .issues-tile.alert {
+      background: #da363326;
+      border: 1px solid #f85149;
+      color: #f85149;
+    }
+    .issues-tile.success {
+      background: #23863626;
+      border: 1px solid #3fb950;
+      color: #3fb950;
+    }
+    .issues-count {
       font-weight: 600;
-      color: #f0f6fc;
+      font-size: 16px;
     }
-    .stat-value.alert { color: #f85149; }
-    .stat-value.success { color: #3fb950; }
-    .stat-label { font-size: 12px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
+
     .section { margin-bottom: 24px; }
 
     /* Tile Grid */
@@ -137,83 +145,19 @@
       font-size: 14px;
       color: #c9d1d9;
     }
-    .controls {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-    button {
-      background: #21262d;
-      border: 1px solid #30363d;
-      color: #c9d1d9;
-      padding: 8px 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: all 0.2s;
-    }
-    button:hover { background: #30363d; }
-    button.primary { background: #238636; border-color: #238636; color: #fff; }
-    button.primary:hover { background: #2ea043; }
-    .refresh-indicator {
-      font-size: 12px;
-      color: #8b949e;
-    }
-    .refresh-indicator.active { color: #3fb950; }
-    .links {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 16px;
-    }
-    .links a {
-      color: #58a6ff;
-      text-decoration: none;
-    }
-    .links a:hover { text-decoration: underline; }
-    code {
-      background: #21262d;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-family: 'SF Mono', Monaco, monospace;
-      font-size: 13px;
-    }
-    .config-note {
-      margin-top: 12px;
-      color: #8b949e;
-      font-size: 12px;
-    }
     @media (max-width: 600px) {
-      .stats { grid-template-columns: 1fr; }
       .tile-grid { grid-template-columns: repeat(2, 1fr); }
+      .header { flex-direction: column; align-items: flex-start; gap: 12px; }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Status Monitor</h1>
-    <p class="subtitle">Zero Hash + Sumsub | Auto-refresh: <span id="refresh-status">ON</span> (every 30s)</p>
-
-    <div class="controls">
-      <button onclick="toggleRefresh()" id="refresh-btn">Pause</button>
-      <button onclick="refreshNow()" class="primary">Refresh Now</button>
-      <span class="refresh-indicator active" id="last-refresh">Last updated: just now</span>
-    </div>
-
-    <div class="stats">
-      <div class="stat">
-        <div class="stat-value" id="zh-count">0</div>
-        <div class="stat-label">Zero Hash</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value" id="ss-count">0</div>
-        <div class="stat-label">Sumsub SGP</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value alert" id="issues-count">0</div>
-        <div class="stat-label">Active Issues</div>
+    <div class="header">
+      <h1>Status Monitor</h1>
+      <div class="issues-tile alert" id="issues-tile">
+        <span>Active Issues:</span>
+        <span class="issues-count" id="issues-count">0</span>
       </div>
     </div>
 
@@ -232,19 +176,6 @@
       <div id="ss-sgp-tiles" class="tile-grid"></div>
     </div>
 
-    <div class="section">
-      <h2>Configuration</h2>
-      <div class="links">
-        <p>Monitored URLs:</p>
-        <p><code>https://status.zerohash.com/</code> — <a href="https://status.zerohash.com/" target="_blank">Visit</a></p>
-        <p><code>https://status.sumsub.com/</code> — <a href="https://status.sumsub.com/" target="_blank">Visit</a></p>
-        <p class="config-note">
-          <strong>Auto-refresh frequency:</strong> 30 seconds<br>
-          <strong>Alert trigger:</strong> Component status ≠ "Operational"<br>
-          <strong>Timer:</strong> Starts when status changes from Operational, stops when resolved
-        </p>
-      </div>
-    </div>
   </div>
 
   <script>
@@ -309,8 +240,6 @@
     // Track when each component became non-operational
     const issueStartTimes = {};
 
-    let autoRefresh = true;
-    let refreshInterval;
     let timerInterval;
 
     function getTileClass(status) {
@@ -407,10 +336,9 @@
       const ssIssues = countIssues(SUMSUB_SGP);
       const totalIssues = zhIssues + ssIssues;
 
-      document.getElementById('zh-count').textContent = ZEROHASH_COMPONENTS.length;
-      document.getElementById('ss-count').textContent = SUMSUB_SGP.length;
       document.getElementById('issues-count').textContent = totalIssues;
-      document.getElementById('issues-count').className = 'stat-value' + (totalIssues > 0 ? ' alert' : ' success');
+      const tileEl = document.getElementById('issues-tile');
+      tileEl.className = 'issues-tile' + (totalIssues > 0 ? ' alert' : ' success');
     }
 
     function render() {
@@ -420,38 +348,12 @@
       updateStats();
     }
 
-    function updateTimestamp() {
-      const now = new Date();
-      document.getElementById('last-refresh').textContent = 'Last updated: ' + now.toLocaleString();
-    }
-
-    function refreshNow() {
-      render();
-      updateTimestamp();
-    }
-
-    function toggleRefresh() {
-      autoRefresh = !autoRefresh;
-      document.getElementById('refresh-btn').textContent = autoRefresh ? 'Pause' : 'Resume';
-      document.getElementById('refresh-status').textContent = autoRefresh ? 'ON' : 'OFF';
-      document.getElementById('last-refresh').className = 'refresh-indicator' + (autoRefresh ? ' active' : '');
-
-      if (autoRefresh) {
-        refreshInterval = setInterval(refreshNow, 30000);
-      } else {
-        clearInterval(refreshInterval);
-      }
-    }
-
     // Initialize
     render();
-    updateTimestamp();
-    refreshInterval = setInterval(refreshNow, 30000);
     timerInterval = setInterval(updateTimers, 1000); // Update timers every second
 
     // Cleanup on page unload
     window.addEventListener('beforeunload', () => {
-      clearInterval(refreshInterval);
       clearInterval(timerInterval);
     });
   </script>

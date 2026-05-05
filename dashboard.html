@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Rotator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0d1117;
+      overflow: hidden;
+    }
+    iframe {
+      width: 100vw;
+      height: 100vh;
+      border: none;
+    }
+    .indicator {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .indicator .page-name {
+      font-weight: 600;
+      color: #58a6ff;
+    }
+    .indicator .countdown {
+      font-family: 'SF Mono', monospace;
+      background: #21262d;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .indicator .controls {
+      display: flex;
+      gap: 8px;
+      margin-left: 8px;
+      padding-left: 12px;
+      border-left: 1px solid #30363d;
+    }
+    .indicator button {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    .indicator button:hover { background: #30363d; }
+    .indicator button.primary { background: #238636; border-color: #238636; color: #fff; }
+    .indicator button.primary:hover { background: #2ea043; }
+    .progress-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      background: #238636;
+      transition: width 1s linear;
+    }
+  </style>
+</head>
+<body>
+  <iframe id="frame" src="index.html"></iframe>
+  <div class="progress-bar" id="progress-bar"></div>
+  <div class="indicator">
+    <span class="page-name" id="page-name">index.html</span>
+    <span class="countdown" id="countdown">30s</span>
+    <div class="controls">
+      <button onclick="prevPage()">← Prev</button>
+      <button onclick="togglePause()" id="pause-btn">Pause</button>
+      <button onclick="nextPage()" class="primary">Next →</button>
+    </div>
+  </div>
+
+  <script>
+    const pages = ['index.html', 'status-dashboard.html'];
+    let current = 0;
+    let countdown = 30;
+    let isPaused = false;
+
+    const frame = document.getElementById('frame');
+    const pageName = document.getElementById('page-name');
+    const countdownEl = document.getElementById('countdown');
+    const pauseBtn = document.getElementById('pause-btn');
+    const progressBar = document.getElementById('progress-bar');
+
+    function updateDisplay() {
+      pageName.textContent = pages[current];
+      countdownEl.textContent = countdown + 's';
+      const progress = ((30 - countdown) / 30) * 100;
+      progressBar.style.width = progress + '%';
+    }
+
+    function switchPage() {
+      current = (current + 1) % pages.length;
+      frame.src = pages[current];
+      countdown = 30;
+      updateDisplay();
+    }
+
+    function nextPage() {
+      current = (current + 1) % pages.length;
+      frame.src = pages[current];
+      countdown = 30;
+      updateDisplay();
+    }
+
+    function prevPage() {
+      current = (current - 1 + pages.length) % pages.length;
+      frame.src = pages[current];
+      countdown = 30;
+      updateDisplay();
+    }
+
+    function togglePause() {
+      isPaused = !isPaused;
+      pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
+      countdownEl.style.opacity = isPaused ? '0.5' : '1';
+    }
+
+    // Update every second
+    setInterval(() => {
+      if (!isPaused) {
+        countdown--;
+        if (countdown <= 0) {
+          switchPage();
+        }
+        updateDisplay();
+      }
+    }, 1000);
+
+    // Initial display
+    updateDisplay();
+  </script>
+</body>
+</html>
