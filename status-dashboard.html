@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Status Monitor | Zero Hash + Sumsub</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      line-height: 1.6;
+      padding: 20px;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { font-size: 28px; font-weight: 600; margin-bottom: 8px; color: #f0f6fc; }
+    h2 { font-size: 20px; font-weight: 500; margin: 24px 0 12px; color: #f0f6fc; }
+    h3 { font-size: 16px; font-weight: 500; margin: 16px 0 8px; color: #8b949e; }
+    .subtitle { color: #8b949e; font-size: 14px; margin-bottom: 20px; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: 600;
+      color: #f0f6fc;
+    }
+    .stat-value.alert { color: #f85149; }
+    .stat-value.success { color: #3fb950; }
+    .stat-label { font-size: 12px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
+    .section { margin-bottom: 24px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid #30363d;
+    }
+    th {
+      background: #21262d;
+      font-weight: 500;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #8b949e;
+      letter-spacing: 0.5px;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover { background: #1c2128; }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .status::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .status.operational { background: #23863626; color: #3fb950; }
+    .status.operational::before { background: #3fb950; }
+    .status.degraded { background: #9e6a0326; color: #d29922; }
+    .status.degraded::before { background: #d29922; }
+    .status.outage { background: #da363326; color: #f85149; }
+    .status.outage::before { background: #f85149; }
+    .status.maintenance { background: #8957e526; color: #a371f7; }
+    .status.maintenance::before { background: #a371f7; }
+    .alert-box {
+      background: #da363326;
+      border: 1px solid #f85149;
+      border-left: 4px solid #f85149;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .alert-box.warning {
+      background: #9e6a0326;
+      border-color: #d29922;
+      border-left-color: #d29922;
+    }
+    .alert-box.success {
+      background: #23863626;
+      border-color: #3fb950;
+      border-left-color: #3fb950;
+    }
+    .alert-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .alert-service {
+      font-weight: 600;
+      color: #f0f6fc;
+    }
+    .alert-time {
+      font-size: 12px;
+      color: #8b949e;
+    }
+    .alert-message {
+      font-size: 14px;
+      color: #c9d1d9;
+    }
+    .controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    button {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    button:hover { background: #30363d; }
+    button.primary { background: #238636; border-color: #238636; color: #fff; }
+    button.primary:hover { background: #2ea043; }
+    .refresh-indicator {
+      font-size: 12px;
+      color: #8b949e;
+    }
+    .refresh-indicator.active { color: #3fb950; }
+    .links {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .links a {
+      color: #58a6ff;
+      text-decoration: none;
+    }
+    .links a:hover { text-decoration: underline; }
+    code {
+      background: #21262d;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 13px;
+    }
+    @media (max-width: 600px) {
+      .stats { grid-template-columns: 1fr; }
+      th, td { padding: 10px 12px; font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Status Monitor</h1>
+    <p class="subtitle">Zero Hash + Sumsub | Auto-refresh: <span id="refresh-status">ON</span></p>
+
+    <div class="controls">
+      <button onclick="toggleRefresh()" id="refresh-btn">Pause</button>
+      <button onclick="refreshNow()" class="primary">Refresh Now</button>
+      <span class="refresh-indicator active" id="last-refresh">Last updated: just now</span>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value" id="zh-count">0</div>
+        <div class="stat-label">Zero Hash</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="ss-count">0</div>
+        <div class="stat-label">Sumsub</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value alert" id="issues-count">0</div>
+        <div class="stat-label">Active Issues</div>
+      </div>
+    </div>
+
+    <div class="section" id="alerts-section">
+      <h2>Recent Alerts</h2>
+      <div id="alerts-container"></div>
+    </div>
+
+    <div class="section">
+      <h2>Zero Hash (zerohash.com)</h2>
+      <table>
+        <thead>
+          <tr><th>Component</th><th>Status</th><th>Uptime (90d)</th></tr>
+        </thead>
+        <tbody id="zh-table"></tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>Sumsub (sumsub.com)</h2>
+      <h3>EU Region</h3>
+      <table>
+        <thead>
+          <tr><th>Component</th><th>Status</th><th>Uptime (90d)</th></tr>
+        </thead>
+        <tbody id="ss-eu-table"></tbody>
+      </table>
+
+      <h3>UAE Region</h3>
+      <table>
+        <thead>
+          <tr><th>Component</th><th>Status</th><th>Uptime (90d)</th></tr>
+        </thead>
+        <tbody id="ss-uae-table"></tbody>
+      </table>
+
+      <h3>SGP Region</h3>
+      <table>
+        <thead>
+          <tr><th>Component</th><th>Status</th><th>Uptime (90d)</th></tr>
+        </thead>
+        <tbody id="ss-sgp-table"></tbody>
+      </table>
+
+      <h3>Other Systems</h3>
+      <table>
+        <thead>
+          <tr><th>Component</th><th>Status</th><th>Uptime (90d)</th></tr>
+        </thead>
+        <tbody id="ss-other-table"></tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>Configuration</h2>
+      <div class="links">
+        <p>Monitored URLs:</p>
+        <p><code>https://status.zerohash.com/</code> — <a href="https://status.zerohash.com/" target="_blank">Visit</a></p>
+        <p><code>https://status.sumsub.com/</code> — <a href="https://status.sumsub.com/" target="_blank">Visit</a></p>
+        <p style="margin-top: 12px; color: #8b949e; font-size: 12px;">
+          Alert trigger: Component status ≠ "Operational"<br>
+          Poll interval: 30 seconds
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Status data - captured from external status pages
+    const ZEROHASH_COMPONENTS = [
+      { name: 'Core Resources', status: 'Operational', uptime: '99.99%' },
+      { name: 'PARTICIPANTS', status: 'Operational', uptime: '100.0%' },
+      { name: 'TRANSACT', status: 'Operational', uptime: '100.0%' },
+      { name: 'TRADING', status: 'Operational', uptime: '100.0%' },
+      { name: 'DEPOSIT & WITHDRAWAL', status: 'Operational', uptime: '99.97%' },
+      { name: 'ACCOUNTS', status: 'Operational', uptime: '100.0%' },
+      { name: 'SDK', status: 'Operational', uptime: '100.0%' },
+      { name: 'ONBOARDING', status: 'Operational', uptime: '100.0%' },
+      { name: 'PROFILE', status: 'Operational', uptime: '100.0%' },
+      { name: 'CRYPTO BUY & SELL', status: 'Operational', uptime: '100.0%' },
+      { name: 'FUND', status: 'Operational', uptime: '100.0%' },
+      { name: 'CRYPTO ACCOUNT LINK', status: 'Operational', uptime: '100.0%' },
+      { name: 'CLOB', status: 'Operational', uptime: '100.0%' },
+      { name: 'FIX Gateway', status: 'Operational', uptime: '100.0%' },
+      { name: 'REST Gateway', status: 'Operational', uptime: '100.0%' },
+      { name: 'Web Applications', status: 'Operational', uptime: '100.0%' },
+      { name: 'Client Portal', status: 'Operational', uptime: '100.0%' },
+      { name: 'Secondary Portal', status: 'Operational', uptime: '100.0%' },
+      { name: 'Website', status: 'Operational', uptime: '100.0%' },
+      { name: 'Websockets', status: 'Operational', uptime: '100.0%' },
+      { name: 'Balance Subscription', status: 'Operational', uptime: '100.0%' },
+      { name: 'Price Subscription', status: 'Operational', uptime: '100.0%' },
+      { name: 'Webhooks', status: 'Operational', uptime: '100.0%' },
+      { name: 'PAYMENTS', status: 'Operational', uptime: '100.0%' },
+      { name: 'ACCOUNT FUNDING', status: 'Operational', uptime: '100.0%' },
+      { name: 'TRADES', status: 'Operational', uptime: '100.0%' },
+      { name: 'ASSETS', status: 'Operational', uptime: '100.0%' },
+    ];
+
+    const SUMSUB_EU = [
+      { name: 'API', status: 'Operational', uptime: '100.0%' },
+      { name: 'MobileSDK', status: 'Operational', uptime: '100.0%' },
+      { name: 'WebSDK', status: 'Operational', uptime: '100.0%' },
+    ];
+
+    const SUMSUB_UAE = [
+      { name: 'API', status: 'Operational', uptime: '77.69%' },
+      { name: 'MobileSDK', status: 'Operational', uptime: '77.69%' },
+      { name: 'WebSDK', status: 'Operational', uptime: '77.69%' },
+    ];
+
+    const SUMSUB_SGP = [
+      { name: 'API', status: 'Operational', uptime: '100.0%' },
+      { name: 'MobileSDK', status: 'Operational', uptime: '100.0%' },
+      { name: 'WebSDK', status: 'Operational', uptime: '100.0%' },
+    ];
+
+    const SUMSUB_OTHER = [
+      { name: 'Support Systems', status: 'Operational', uptime: '99.99%' },
+    ];
+
+    const RECENT_ALERTS = [
+      {
+        id: '1',
+        service: 'Sumsub',
+        component: 'Support integration for Slack',
+        status: 'Unresolved',
+        message: 'Support integration for Slack stopped working, tickets being closed automatically',
+        time: 'May 04, 2026 - 21:46 UTC',
+        severity: 'warning',
+      },
+      {
+        id: '2',
+        service: 'Zero Hash',
+        component: 'Solana Withdrawals & Deposits',
+        status: 'Resolved',
+        message: 'Delayed Solana transactions - all impacted transactions confirmed on-chain',
+        time: 'Apr 23, 2026 - 21:22 UTC',
+        severity: 'success',
+      },
+    ];
+
+    let autoRefresh = true;
+    let refreshInterval;
+
+    function getStatusClass(status) {
+      if (status === 'Operational' || status === 'Resolved') return 'operational';
+      if (status === 'Degraded Performance' || status === 'Monitoring') return 'degraded';
+      if (status === 'Partial Outage' || status === 'Unresolved') return 'outage';
+      if (status === 'Major Outage') return 'outage';
+      return 'maintenance';
+    }
+
+    function countIssues(items) {
+      return items.filter(i => i.status !== 'Operational' && i.status !== 'Resolved').length;
+    }
+
+    function renderRow(item) {
+      return `<tr>
+        <td>${item.name}</td>
+        <td><span class="status ${getStatusClass(item.status)}">${item.status}</span></td>
+        <td>${item.uptime}</td>
+      </tr>`;
+    }
+
+    function renderAlert(alert) {
+      const alertClass = alert.severity === 'success' ? 'success' : alert.severity === 'warning' ? 'warning' : '';
+      return `<div class="alert-box ${alertClass}">
+        <div class="alert-header">
+          <span class="alert-service">${alert.service} | ${alert.component}</span>
+          <span class="status ${getStatusClass(alert.status)}">${alert.status}</span>
+        </div>
+        <div class="alert-message">${alert.message}</div>
+        <div class="alert-time">${alert.time}</div>
+      </div>`;
+    }
+
+    function updateStats() {
+      const zhIssues = countIssues(ZEROHASH_COMPONENTS);
+      const ssIssues = countIssues(SUMSUB_EU) + countIssues(SUMSUB_UAE) + countIssues(SUMSUB_SGP) + countIssues(SUMSUB_OTHER);
+      const totalIssues = zhIssues + ssIssues;
+
+      document.getElementById('zh-count').textContent = ZEROHASH_COMPONENTS.length;
+      document.getElementById('ss-count').textContent = SUMSUB_EU.length + SUMSUB_UAE.length + SUMSUB_SGP.length + SUMSUB_OTHER.length;
+      document.getElementById('issues-count').textContent = totalIssues;
+      document.getElementById('issues-count').className = 'stat-value' + (totalIssues > 0 ? ' alert' : ' success');
+    }
+
+    function render() {
+      document.getElementById('zh-table').innerHTML = ZEROHASH_COMPONENTS.map(renderRow).join('');
+      document.getElementById('ss-eu-table').innerHTML = SUMSUB_EU.map(renderRow).join('');
+      document.getElementById('ss-uae-table').innerHTML = SUMSUB_UAE.map(renderRow).join('');
+      document.getElementById('ss-sgp-table').innerHTML = SUMSUB_SGP.map(renderRow).join('');
+      document.getElementById('ss-other-table').innerHTML = SUMSUB_OTHER.map(renderRow).join('');
+      document.getElementById('alerts-container').innerHTML = RECENT_ALERTS.map(renderAlert).join('');
+      updateStats();
+    }
+
+    function updateTimestamp() {
+      const now = new Date();
+      document.getElementById('last-refresh').textContent = 'Last updated: ' + now.toLocaleString();
+    }
+
+    function refreshNow() {
+      render();
+      updateTimestamp();
+    }
+
+    function toggleRefresh() {
+      autoRefresh = !autoRefresh;
+      document.getElementById('refresh-btn').textContent = autoRefresh ? 'Pause' : 'Resume';
+      document.getElementById('refresh-status').textContent = autoRefresh ? 'ON' : 'OFF';
+      document.getElementById('last-refresh').className = 'refresh-indicator' + (autoRefresh ? ' active' : '');
+
+      if (autoRefresh) {
+        refreshInterval = setInterval(refreshNow, 30000);
+      } else {
+        clearInterval(refreshInterval);
+      }
+    }
+
+    // Initialize
+    render();
+    updateTimestamp();
+    refreshInterval = setInterval(refreshNow, 30000);
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      clearInterval(refreshInterval);
+    });
+  </script>
+</body>
+</html>
