@@ -49,20 +49,6 @@
   }
   .header h1 { font-size: 28px; font-weight: 600; color: #f0f6fc; }
 
-  .now-badge {
-    font-size: 14px;
-    padding: 4px 12px;
-    border-radius: 999px;
-    background: #252525;
-    border: 1px solid #333;
-    color: #8b949e;
-  }
-
-  .last-updated {
-    font-size: 13px;
-    color: #8b949e;
-  }
-
   .legend {
     display: flex;
     gap: 16px;
@@ -118,7 +104,6 @@
   .card.grey   { opacity: 0.5; }
 
   .city   { font-size: 14px; font-weight: 600; color: #f0f6fc; line-height: 1.3; }
-  .tz-sub { font-size: 13px; color: #8b949e; margin-top: 2px; }
 
   .time-now {
     font-size: 18px;
@@ -128,7 +113,7 @@
     color: #f0f6fc;
   }
 
-  .badge-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .badge-row { display: flex; gap: 8px; flex-wrap: wrap; }
   .badge {
     font-size: 12px;
     font-weight: 500;
@@ -141,9 +126,6 @@
   .badge.none         { background: #333; color: #8b949e; }
   .badge.weekend      { background: #333; color: #8b949e; }
 
-  .inbound-row   { display: flex; gap: 6px; align-items: baseline; margin-top: 4px; }
-  .inbound-label { font-size: 13px; color: #8b949e; }
-  .inbound-val   { font-size: 13px; color: #c9d1d9; }
   .date-row      { font-size: 18px; font-weight: 600; letter-spacing: -0.5px; color: #8b949e; }
 </style>
 </head>
@@ -152,8 +134,6 @@
 
 <div class="header">
   <h1>Call Operating Hours</h1>
-  <span class="now-badge" id="utc-now"></span>
-  <span class="last-updated" id="last-updated"></span>
 </div>
 
 <div class="legend">
@@ -277,7 +257,6 @@ function makeCard(z) {
   const timeStr = fmt(parseInt(h) % 24, parseInt(p.minute));
   const status  = callStatus(z.tz);
   const wknd    = isWeekend(z.tz);
-  const ranges  = getMergedInbound(z.tz);
 
   let badge = "";
   if (status === "green") {
@@ -289,21 +268,15 @@ function makeCard(z) {
     badge = `<span class="badge none">no calls</span>`;
   }
 
-
   const card = document.createElement("div");
   card.className = `card ${status}`;
-  const inboundRanges = ranges.length
-    ? ranges.map(r => `${minsToFmt(r.open)} – ${minsToFmt(r.close)}`).join(", ")
-    : "—";
 
   const cityHtml = (z.region === "NZ" || z.region === "ZA") ? "" : `<div class="city">${z.label}</div>`;
 
   card.innerHTML = `
     ${cityHtml}
-    <div class="tz-sub">${z.sub}</div>
     <div class="time-now">${timeStr} <span class="date-row">${p.weekday} ${p.month} ${p.day}</span></div>
     <div class="badge-row">${badge}</div>
-    <div class="inbound-row"><span class="inbound-label">Call in (local time)</span><span class="inbound-val">${inboundRanges}</span></div>
   `;
   return card;
 }
@@ -330,17 +303,11 @@ function render() {
   });
 }
 
-function updateUtc() {
-  const now = new Date();
-  document.getElementById("utc-now").textContent = "UTC " + now.toISOString().slice(11,16);
-  document.getElementById("last-updated").textContent = "Updated " + now.toLocaleTimeString();
-}
-
 // Initial render
-render(); updateUtc();
+render();
 
 // Refresh every 10 seconds — updates times, open/closed status, and inbound windows
-setInterval(() => { render(); updateUtc(); }, 10000);
+setInterval(() => { render(); }, 10000);
 </script>
 </body>
 </html>
