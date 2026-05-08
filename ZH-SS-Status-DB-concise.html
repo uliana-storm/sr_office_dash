@@ -14,7 +14,6 @@
       padding: 20px;
     }
     .container { width: 100%; margin: 0 auto; }
-    h2 { font-size: 80px; font-weight: 600; margin: 32px 0 24px; color: #f0f6fc; }
 
     /* Summary Tiles */
     .summary-grid {
@@ -61,70 +60,6 @@
       border-radius: 8px;
     }
 
-    .section { margin-bottom: 24px; }
-
-    .alert-box {
-      background: #da363326;
-      border: 2px solid #f85149;
-      border-left: 8px solid #f85149;
-      border-radius: 16px;
-      padding: 32px;
-      margin-bottom: 24px;
-    }
-    .alert-box.warning {
-      background: #9e6a0326;
-      border-color: #d29922;
-      border-left-color: #d29922;
-    }
-    .alert-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-      gap: 16px;
-    }
-    .alert-service {
-      font-size: 48px;
-      font-weight: 600;
-      color: #f0f6fc;
-    }
-    .alert-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      padding: 8px 20px;
-      border-radius: 16px;
-      font-size: 32px;
-      font-weight: 500;
-    }
-    .alert-status::before {
-      content: '';
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-    }
-    .alert-status.operational { background: transparent; border: 1px solid #3fb950; color: #3fb950; }
-    .alert-status.operational::before { background: #3fb950; }
-    .alert-status.degraded { background: transparent; border: 1px solid #d29922; color: #d29922; }
-    .alert-status.degraded::before { background: #d29922; }
-    .alert-status.outage { background: transparent; border: 1px solid #f85149; color: #f85149; }
-    .alert-status.outage::before { background: #f85149; }
-    .alert-time {
-      font-size: 36px;
-      color: #8b949e;
-    }
-    .alert-message {
-      font-size: 40px;
-      color: #c9d1d9;
-    }
-
-    .no-alerts {
-      color: #8b949e;
-      font-style: italic;
-      padding: 16px;
-      text-align: center;
-    }
-
     @media (max-width: 600px) {
       .summary-grid { flex-direction: column; }
     }
@@ -142,10 +77,6 @@
       </div>
     </div>
 
-    <div class="section" id="alerts-section">
-      <h2>Unresolved Alerts</h2>
-      <div id="alerts-container"></div>
-    </div>
   </div>
 
   <script>
@@ -156,12 +87,7 @@
 
     let ZEROHASH_COMPONENTS = [];
     let SUMSUB_SGP = [];
-    let RECENT_ALERTS = [];
 
-    // Track when each service became non-operational
-    const serviceIssueStartTimes = {};
-
-    let timerInterval;
 
     function getTileClass(status) {
       const s = (status || '').toLowerCase().replace(/_/g, ' ');
@@ -173,21 +99,13 @@
       return 'maintenance';
     }
 
-    function getAlertClass(status) {
-      const s = (status || '').toLowerCase().replace(/_/g, ' ');
-      if (s === 'operational' || s === 'resolved') return 'operational';
-      if (s === 'degraded performance' || s === 'monitoring') return 'degraded';
-      if (s === 'partial outage' || s === 'unresolved') return 'outage';
-      if (s === 'major outage') return 'outage';
-      if (s === '') return 'operational';
-      return 'maintenance';
-    }
-
     function countIssues(items) {
       if (!items || items.length === 0) return 0; // No data = no issues
       return items.filter(i => {
-        const s = (i.status || '').toLowerCase();
-        return s !== 'operational' && s !== 'resolved';
+        const s = (i.status || '').toLowerCase().replace(/_/g, ' ');
+        // These are "good" statuses - everything else is an issue
+        const goodStatuses = ['operational', 'resolved', ''];
+        return !goodStatuses.includes(s);
       }).length;
     }
 
@@ -209,61 +127,36 @@
 
       // Find the worst status (normalize to lowercase with spaces)
       const statuses = components.map(c => (c.status || '').toLowerCase().replace(/_/g, ' '));
+
+      // Debug: log non-operational statuses
+      const badOnes = components.filter(c => {
+        const s = (c.status || '').toLowerCase().replace(/_/g, ' ');
+        return !['operational', 'resolved', ''].includes(s);
+      });
+      console.log('Non-operational components:', badOnes.map(c => ({ name: c.name, status: c.status })));
+
       if (statuses.includes('major outage')) return { status: 'Major Outage', class: 'outage' };
-      if (statuses.includes('partial outage') || statuses.includes('unresolved')) return { status: 'Partial Outage', class: 'outage' };
-      if (statuses.includes('degraded performance') || statuses.includes('monitoring')) return { status: 'Degraded Performance', class: 'degraded' };
-      return { status: 'Issue Detected', class: 'outage' };
+      if (statuses.includes('partial outage')) return { status: 'Partial Outage', class: 'outage' };
+      if (statuses.includes('degraded performance')) return { status: 'Degraded Performance', class: 'degraded' };
+      if (statuses.includes('under maintenance') || statuses.includes('maintenance')) return { status: 'Maintenance', class: 'maintenance' };
+
+      // Unknown status - default to operational instead of outage
+      return { status: 'Operational', class: 'operational' };
     }
 
     function updateServiceTile(serviceId, components) {
       const tile = document.getElementById(serviceId);
       const statusInfo = getServiceStatus(components);
-      const issueCount = countIssues(components);
 
       // Update tile class and status
       tile.className = `summary-tile ${statusInfo.class}`;
       tile.setAttribute('data-status', statusInfo.status.toLowerCase());
-
-      if (issueCount === 0) {
-        delete serviceIssueStartTimes[serviceId];
-      } else {
-        // Start timer if not already tracking
-        if (!serviceIssueStartTimes[serviceId]) {
-          serviceIssueStartTimes[serviceId] = Date.now();
-        }
-      }
-    }
-
-    function renderAlert(alert) {
-      const alertClass = alert.severity === 'warning' ? 'warning' : '';
-      return `<div class="alert-box ${alertClass}">
-        <div class="alert-header">
-          <span class="alert-service">${alert.service} | ${alert.component}</span>
-          <span class="alert-status ${getAlertClass(alert.status)}">${alert.status}</span>
-        </div>
-        <div class="alert-message">${alert.message}</div>
-        <div class="alert-time">${alert.time}</div>
-      </div>`;
-    }
-
-    function updateTimers() {
-      // Timer tracking maintained but no visible display in simplified view
     }
 
     function render() {
       // Update summary tiles
       updateServiceTile('zh-summary', ZEROHASH_COMPONENTS);
       updateServiceTile('ss-summary', SUMSUB_SGP);
-
-      // Show only unresolved alerts
-      const unresolvedAlerts = RECENT_ALERTS.filter(a => a.status !== 'Resolved');
-      const alertsContainer = document.getElementById('alerts-container');
-
-      if (unresolvedAlerts.length === 0) {
-        alertsContainer.innerHTML = '<div class="no-alerts">No unresolved alerts</div>';
-      } else {
-        alertsContainer.innerHTML = unresolvedAlerts.map(renderAlert).join('');
-      }
     }
 
     // Fetch fresh status data (not cached)
@@ -279,31 +172,14 @@
 
         if (zhRes.ok) {
           const zhData = await zhRes.json();
+          console.log('ZeroHash API:', zhData.components?.map(c => ({ name: c.name, status: c.status })));
           ZEROHASH_COMPONENTS = zhData.components || [];
-          RECENT_ALERTS = (zhData.incidents || []).map(i => ({
-            id: i.id,
-            service: 'Zero Hash',
-            component: i.name,
-            status: i.status === 'resolved' ? 'Resolved' : 'Unresolved',
-            message: i.incident_updates?.[0]?.body || i.name,
-            time: i.started_at,
-            severity: i.impact === 'none' ? 'success' : 'warning'
-          }));
         }
 
         if (ssRes.ok) {
           const ssData = await ssRes.json();
+          console.log('Sumsub API:', ssData.components?.map(c => ({ name: c.name, status: c.status })));
           SUMSUB_SGP = ssData.components || [];
-          const ssIncidents = (ssData.incidents || []).map(i => ({
-            id: i.id,
-            service: 'Sumsub',
-            component: i.name,
-            status: i.status === 'resolved' ? 'Resolved' : 'Unresolved',
-            message: i.incident_updates?.[0]?.body || i.name,
-            time: i.started_at,
-            severity: i.impact === 'none' ? 'success' : 'warning'
-          }));
-          RECENT_ALERTS = [...RECENT_ALERTS, ...ssIncidents];
         }
 
         render();
@@ -311,20 +187,12 @@
         console.error('Failed to fetch status:', err);
         zhTile.className = 'summary-tile degraded';
         ssTile.className = 'summary-tile degraded';
-        document.getElementById('alerts-container').innerHTML =
-          '<div class="no-alerts">Unable to fetch live status data</div>';
       }
     }
 
     // Initialize - fetch fresh data, no cache
     fetchStatusData();
     setInterval(fetchStatusData, 60000); // Refresh every minute
-    timerInterval = setInterval(updateTimers, 1000);
-
-    // Cleanup on page unload
-    window.addEventListener('beforeunload', () => {
-      clearInterval(timerInterval);
-    });
   </script>
 </body>
 </html>
