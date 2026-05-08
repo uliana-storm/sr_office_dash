@@ -164,23 +164,31 @@
     let timerInterval;
 
     function getTileClass(status) {
-      if (status === 'Operational' || status === 'Resolved') return 'operational';
-      if (status === 'Degraded Performance' || status === 'Monitoring') return 'degraded';
-      if (status === 'Partial Outage' || status === 'Unresolved') return 'outage';
-      if (status === 'Major Outage') return 'outage';
+      const s = (status || '').toLowerCase().replace(/_/g, ' ');
+      if (s === 'operational' || s === 'resolved') return 'operational';
+      if (s === 'degraded performance' || s === 'monitoring') return 'degraded';
+      if (s === 'partial outage' || s === 'unresolved') return 'outage';
+      if (s === 'major outage') return 'outage';
+      if (s === '') return 'operational'; // Default when no data
       return 'maintenance';
     }
 
     function getAlertClass(status) {
-      if (status === 'Operational' || status === 'Resolved') return 'operational';
-      if (status === 'Degraded Performance' || status === 'Monitoring') return 'degraded';
-      if (status === 'Partial Outage' || status === 'Unresolved') return 'outage';
-      if (status === 'Major Outage') return 'outage';
+      const s = (status || '').toLowerCase().replace(/_/g, ' ');
+      if (s === 'operational' || s === 'resolved') return 'operational';
+      if (s === 'degraded performance' || s === 'monitoring') return 'degraded';
+      if (s === 'partial outage' || s === 'unresolved') return 'outage';
+      if (s === 'major outage') return 'outage';
+      if (s === '') return 'operational';
       return 'maintenance';
     }
 
     function countIssues(items) {
-      return items.filter(i => i.status !== 'Operational' && i.status !== 'Resolved').length;
+      if (!items || items.length === 0) return 0; // No data = no issues
+      return items.filter(i => {
+        const s = (i.status || '').toLowerCase();
+        return s !== 'operational' && s !== 'resolved';
+      }).length;
     }
 
     function formatDuration(ms) {
@@ -199,11 +207,11 @@
       const issueCount = countIssues(components);
       if (issueCount === 0) return { status: 'Operational', class: 'operational' };
 
-      // Find the worst status
-      const statuses = components.map(c => c.status);
-      if (statuses.includes('Major Outage')) return { status: 'Major Outage', class: 'outage' };
-      if (statuses.includes('Partial Outage') || statuses.includes('Unresolved')) return { status: 'Partial Outage', class: 'outage' };
-      if (statuses.includes('Degraded Performance') || statuses.includes('Monitoring')) return { status: 'Degraded Performance', class: 'degraded' };
+      // Find the worst status (normalize to lowercase with spaces)
+      const statuses = components.map(c => (c.status || '').toLowerCase().replace(/_/g, ' '));
+      if (statuses.includes('major outage')) return { status: 'Major Outage', class: 'outage' };
+      if (statuses.includes('partial outage') || statuses.includes('unresolved')) return { status: 'Partial Outage', class: 'outage' };
+      if (statuses.includes('degraded performance') || statuses.includes('monitoring')) return { status: 'Degraded Performance', class: 'degraded' };
       return { status: 'Issue Detected', class: 'outage' };
     }
 
